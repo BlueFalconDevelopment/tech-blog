@@ -1,0 +1,36 @@
+---
+import {
+  GISCUS_CATEGORY,
+  GISCUS_CATEGORY_ID,
+  GISCUS_REPO,
+  GISCUS_REPO_ID,
+} from "../consts";
+
+// Comments are skipped entirely until GISCUS_REPO is configured in
+// src/consts.ts (see https://giscus.app for how to get these values).
+const enabled = GISCUS_REPO && GISCUS_REPO_ID && GISCUS_CATEGORY_ID;
+---
+
+{
+  enabled && (
+    <section class="mt-12 border-t border-slate-200 pt-8 dark:border-slate-800">
+      <script
+        is:inline
+        src="https://giscus.app/client.js"
+        data-repo={GISCUS_REPO}
+        data-repo-id={GISCUS_REPO_ID}
+        data-category={GISCUS_CATEGORY}
+        data-category-id={GISCUS_CATEGORY_ID}
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        crossorigin="anonymous"
+        async
+      />
+    </section>
+  )
+}

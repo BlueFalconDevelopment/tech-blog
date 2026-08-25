@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Astro handles trailing-slash redirects and 404s on its own for static output;
+# nothing else is required here for Netlify Forms (contact.astro) to work —
+# Netlify detects the static `data-netlify="true"` form at build time.

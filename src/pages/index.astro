@@ -1,0 +1,39 @@
+---
+import { getCollection } from "astro:content";
+import PostCard from "../components/PostCard.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const posts = (await getCollection("blog", ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+
+const recentPosts = posts.slice(0, 5);
+---
+
+<BaseLayout>
+  <section class="mb-10">
+    <h1
+      class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-white"
+    >
+      Latest posts
+    </h1>
+    <p class="mt-2 text-slate-600 dark:text-slate-300">
+      Notes and write-ups on software engineering, infrastructure, and
+      whatever else I'm building.
+    </p>
+  </section>
+
+  <div class="flex flex-col gap-4">
+    {recentPosts.map((post) => <PostCard post={post} />)}
+  </div>
+
+  {
+    posts.length > recentPosts.length && (
+      <p class="mt-8 text-sm">
+        <a href="/blog" class="font-medium text-sky-600 dark:text-sky-400">
+          View all posts &rarr;
+        </a>
+      </p>
+    )
+  }
+</BaseLayout>
