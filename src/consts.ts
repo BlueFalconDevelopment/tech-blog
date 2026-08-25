@@ -1,6 +1,6 @@
 // Site-wide constants. Update these for your own blog.
 
-export const SITE_TITLE = "Tech Blog";
+export const SITE_TITLE = "Blue Falcon Development Blog";
 export const SITE_DESCRIPTION =
   "Notes and write-ups on software engineering, infrastructure, and whatever else I'm building.";
 
@@ -12,9 +12,7 @@ export const SITE_URL = "https://tech-blog-bluefalcon.netlify.app";
 export const AUTHOR = "Your Name";
 
 // Backed by github.com/BlueFalconDevelopment/tech-blog (public, Discussions
-// enabled). Still requires installing the giscus GitHub App on that repo at
-// https://github.com/apps/giscus before comments will actually load/post —
-// that step needs your own GitHub login, so it isn't done yet.
+// enabled, giscus GitHub App installed).
 export const GISCUS_REPO = "BlueFalconDevelopment/tech-blog";
 export const GISCUS_REPO_ID = "R_kgDOUEH2gA";
 export const GISCUS_CATEGORY = "Announcements";
