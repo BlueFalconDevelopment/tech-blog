@@ -3,20 +3,32 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 ---
 
 <BaseLayout title="Search" description="Search the blog.">
-  <h1
-    class="mb-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-white"
-  >
+  <h1 class="mb-6 text-3xl font-bold tracking-tight text-term-fg-bright sm:text-4xl">
     Search
   </h1>
 
   <div id="search"></div>
 
-  <p class="mt-6 text-sm text-slate-500 dark:text-slate-400">
+  <p class="mt-6 text-sm text-term-fg-dim">
     Search only works in production builds (<code>npm run build</code> then <code
       >npm run preview</code
     >) &mdash; the Pagefind index doesn't exist yet in <code>npm run dev</code>.
   </p>
 </BaseLayout>
+
+<style>
+  #search {
+    --pagefind-ui-primary: var(--color-term-fg-bright);
+    --pagefind-ui-text: var(--color-term-fg);
+    --pagefind-ui-background: var(--color-term-panel);
+    --pagefind-ui-border: var(--color-term-border);
+    --pagefind-ui-tag: var(--color-term-panel-hover);
+    --pagefind-ui-border-width: 1px;
+    --pagefind-ui-border-radius: 0px;
+    --pagefind-ui-image-border-radius: 0px;
+    --pagefind-ui-font: var(--font-mono);
+  }
+</style>
 
 <link rel="stylesheet" href="/pagefind/pagefind-ui.css" />
 <script is:inline src="/pagefind/pagefind-ui.js"></script>

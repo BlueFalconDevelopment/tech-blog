@@ -8,9 +8,7 @@ const tags = [...new Set(posts.flatMap((post) => post.data.tags))].sort();
 ---
 
 <BaseLayout title="Tags">
-  <h1
-    class="mb-8 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-white"
-  >
+  <h1 class="mb-8 text-3xl font-bold tracking-tight text-term-fg-bright sm:text-4xl">
     Tags
   </h1>
   {
@@ -21,7 +19,7 @@ const tags = [...new Set(posts.flatMap((post) => post.data.tags))].sort();
         ))}
       </div>
     ) : (
-      <p class="text-slate-600 dark:text-slate-300">No tags yet.</p>
+      <p class="text-term-fg-dim">No tags yet.</p>
     )
   }
 </BaseLayout>

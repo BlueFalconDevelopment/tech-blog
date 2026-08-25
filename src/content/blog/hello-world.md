@@ -48,8 +48,8 @@ Anyway. Here's what's actually running under the hood:
   [x] rss feed, because feed readers aren't dead, you're dead
   [x] full-text search, built at deploy time, no third party
       service reading my traffic
-  [x] dark mode that isn't just "respect the OS setting" —
-      an actual toggle, remembered
+  [x] amber-on-black terminal theme, no light mode to argue
+      with, no toggle to maintain
   [x] auto-generated social preview images per post
   [x] comments, backed by github discussions, not some ad
       network's comment widget

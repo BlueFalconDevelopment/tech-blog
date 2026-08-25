@@ -26,12 +26,12 @@ const { title, description, pubDate, updatedDate, tags, heroImage, heroImageAlt 
   <article>
     <header class="mb-8">
       <h1
-        class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-white"
+        class="text-3xl font-bold tracking-tight text-term-fg-bright sm:text-4xl"
       >
         {title}
       </h1>
       <div
-        class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400"
+        class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-term-fg-dim"
       >
         <time datetime={pubDate.toISOString()}>
           {
@@ -72,12 +72,12 @@ const { title, description, pubDate, updatedDate, tags, heroImage, heroImageAlt 
             width={heroImage.width}
             height={heroImage.height}
             alt={heroImageAlt ?? ""}
-            class="mt-6 w-full rounded-lg border border-slate-200 dark:border-slate-800"
+            class="mt-6 w-full rounded-none border border-term-border"
           />
         )
       }
     </header>
-    <div class="prose dark:prose-invert">
+    <div class="prose">
       <slot />
     </div>
     <Giscus />

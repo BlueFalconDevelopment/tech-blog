@@ -43,6 +43,7 @@ const resolvedOgImage = ogImage
       href="/rss.xml"
     />
     <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#070502" />
 
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
@@ -76,25 +77,9 @@ const resolvedOgImage = ogImage
         </>
       )
     }
-
-    <!--
-      Set the theme before first paint to avoid a flash of the wrong theme.
-      Must stay inline (not a module) so it runs synchronously and blocking.
-    -->
-    <script is:inline>
-      (function () {
-        const STORAGE_KEY = "theme";
-        const stored = localStorage.getItem(STORAGE_KEY);
-        const theme =
-          stored ??
-          (window.matchMedia("(prefers-color-scheme: dark)").matches
-            ? "dark"
-            : "light");
-        document.documentElement.dataset.theme = theme;
-      })();
-    </script>
   </head>
   <body class="flex min-h-screen flex-col">
+    <div class="crt-overlay" aria-hidden="true"></div>
     <Header />
     <main
       data-pagefind-body

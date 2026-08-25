@@ -16,5 +16,13 @@ export default defineConfig({
     plugins: [tailwindcss()]
   },
 
+  // 'css-variables' hands code-block colors to CSS (--shiki-* vars in
+  // global.css) instead of hardcoding a light/dark theme's colors inline.
+  markdown: {
+    shikiConfig: {
+      theme: 'css-variables'
+    }
+  },
+
   integrations: [mdx(), sitemap()]
 });
