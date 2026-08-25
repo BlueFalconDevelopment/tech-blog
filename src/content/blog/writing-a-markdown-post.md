@@ -1,12 +1,19 @@
 ---
-title: "Writing a Markdown Post"
-description: "Frontmatter fields, code blocks, and other Markdown conventions this blog supports."
+title: "Post Format, or: How I Broke My Own Build in Five Minutes"
+description: "The frontmatter schema, code blocks, and the Zod error I walked straight into on day one."
 pubDate: 2026-08-10
 tags: ["meta", "writing"]
 ---
 
-Every post is a Markdown (or MDX) file in `src/content/blog/`. The frontmatter
-schema is enforced by `src/content.config.ts`:
+```text
+--[ POST FORMAT :: READ ME FIRST ]-----------------------------
+```
+
+First real thing I did after getting the site up was write a post, and the
+build immediately yelled at me. Turns out I'd defined a schema for post
+frontmatter (`src/content.config.ts`) and then just... didn't follow it.
+Zod does not care that I was in a hurry. Here's the frontmatter block that
+actually passes:
 
 ```yaml
 ---
@@ -19,7 +26,13 @@ draft: false # optional, defaults to false
 ---
 ```
 
-Code blocks get Astro's built-in Shiki syntax highlighting for free:
+Copy that whole block, drop it at the top of a new `.md` file in
+`src/content/blog/`, fill in the blanks. `title`, `description`, and
+`pubDate` are the only ones it'll actually reject a build over — everything
+else has a sane default.
+
+Code blocks were the easy part — Astro ships Shiki syntax highlighting for
+free, no plugin, no config:
 
 ```ts
 export function greet(name: string): string {
@@ -27,6 +40,13 @@ export function greet(name: string): string {
 }
 ```
 
-Anything else — headings, lists, blockquotes, tables, images — is styled by
-`@tailwindcss/typography` via the `.prose` class in the post layout, with a
-few brand-color tweaks in `src/styles/global.css`.
+One thing I'm deliberately doing: keeping runnable snippets in their own
+clean fenced block, nothing else mixed in — no `$` prompt glued to the front
+of a command, no inline commentary breaking it up. If it's meant to be
+copy-pasted, it needs to survive being copy-pasted. Terminal-session
+screenshots with prompts and output are for showing what happened, not for
+snippets I actually want someone to run.
+
+Everything else — headings, lists, blockquotes, tables — gets styled by
+`@tailwindcss/typography`'s `.prose` class, which the post layout wraps
+around the rendered content. I get to write Markdown and not think about it.
