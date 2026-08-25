@@ -8,9 +8,9 @@ import sitemap from '@astrojs/sitemap';
 // https://astro.build/config
 export default defineConfig({
   // Must match SITE_URL in src/consts.ts — required for RSS, sitemap, and
-  // canonical/OG URLs to resolve correctly. Placeholder Netlify subdomain
-  // until the site is deployed; swap for the real URL once known.
-  site: 'https://tech-blog.netlify.app',
+  // canonical/OG URLs to resolve correctly. Swap for a custom domain if one
+  // gets attached later.
+  site: 'https://tech-blog-bluefalcon.netlify.app',
 
   vite: {
     plugins: [tailwindcss()]

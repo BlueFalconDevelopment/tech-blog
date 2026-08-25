@@ -6,9 +6,8 @@ export const SITE_DESCRIPTION =
 
 // Used to build absolute URLs for RSS, sitemap, canonical links, and OG images.
 // Must match the `site` value in astro.config.mjs and the `Sitemap:` line in
-// public/robots.txt. This is a placeholder Netlify subdomain — once the site
-// is deployed, swap it for the real *.netlify.app URL (or a custom domain).
-export const SITE_URL = "https://tech-blog.netlify.app";
+// public/robots.txt. Swap for a custom domain if one gets attached later.
+export const SITE_URL = "https://tech-blog-bluefalcon.netlify.app";
 
 export const AUTHOR = "Your Name";
 

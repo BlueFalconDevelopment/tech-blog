@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://tech-blog.netlify.app/sitemap-index.xml
+Sitemap: https://tech-blog-bluefalcon.netlify.app/sitemap-index.xml
