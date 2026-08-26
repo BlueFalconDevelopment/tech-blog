@@ -1,0 +1,1450 @@
+<section class="filesec" id="file-kali" data-cat="SECURITY"><header class="filehead"><span class="tag">ENTRY 01</span><h2>Kali Linux</h2></header><div class="filebody"><div class="plain">(current as of Aug 2026 — Kali is a rolling release; latest point release is 2026.2, kernel 6.19)</div>
+<div class="blank"></div>
+<div class="subhead">Version &amp; Updates</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">cat /etc/os-release         </span><span class="sep"> — </span><span class="desc">confirm you're on Kali and check version string</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">kali-version                </span><span class="sep"> — </span><span class="desc">quick version/build check</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo apt update &amp;&amp; sudo apt full-upgrade -y  </span><span class="sep"> — </span><span class="desc">Kali recommends full-upgrade, not just upgrade</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo apt autoremove --purge </span><span class="sep"> — </span><span class="desc">clean up old kernels/packages after upgrades</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Kali ships new tools/point releases quarterly (YYYY.1, YYYY.2, YYYY.3, YYYY.4)</span><span class="sep"> — </span><span class="desc">no separate "install new version," just keep apt updated</span></div>
+<div class="blank"></div>
+<div class="subhead">Kali-Specific Utilities</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">kali-tweaks        </span><span class="sep"> — </span><span class="desc">toggle "everything" metapackages, undercover mode, ARM config, etc.</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">kali-undercover    </span><span class="sep"> — </span><span class="desc">disguise the desktop as Windows (useful on client sites); toggle again to revert</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo update-rc.d &lt;service&gt; enable/disable </span><span class="sep"> — </span><span class="desc">legacy init control (most things use systemctl now)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">apt search kali-tools-&lt;category&gt; </span><span class="sep"> — </span><span class="desc">metapackages: kali-tools-top10, -wireless, -web, -forensics, -passwords, -sniffing-spoofing, -exploitation, -information-gathering</span></div>
+<div class="blank"></div>
+<div class="subhead">Package/Tool Management</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo apt install &lt;tool&gt;     </span><span class="sep"> — </span><span class="desc">most security tools are already packaged</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">pipx install &lt;tool&gt;         </span><span class="sep"> — </span><span class="desc">for Python-based tools, keeps them isolated from system Python</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo apt-cache search &lt;term&gt;</span><span class="sep"> — </span><span class="desc">find a tool by keyword</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">locate &lt;toolname&gt;           </span><span class="sep"> — </span><span class="desc">after `sudo updatedb`, find installed tool paths fast</span></div>
+<div class="blank"></div>
+<div class="subhead">Recon / Information Gathering</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">nmap -sV -sC -O &lt;target&gt;             </span><span class="sep"> — </span><span class="desc">service/version detection + default scripts + OS guess</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">nmap -p- -T4 &lt;target&gt;                </span><span class="sep"> — </span><span class="desc">full port scan</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">nmap -sU &lt;target&gt;                    </span><span class="sep"> — </span><span class="desc">UDP scan</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">masscan -p1-65535 &lt;target&gt; --rate=1000</span><span class="sep"> — </span><span class="desc">very fast async port scan</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">whois &lt;domain&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">dig &lt;domain&gt; ANY / dig -x &lt;ip&gt;       </span><span class="sep"> — </span><span class="desc">DNS lookups / reverse lookup</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">theHarvester -d &lt;domain&gt; -b all      </span><span class="sep"> — </span><span class="desc">email/subdomain/host OSINT</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">amass enum -d &lt;domain&gt;               </span><span class="sep"> — </span><span class="desc">subdomain enumeration</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">netdiscover -r &lt;cidr&gt;                </span><span class="sep"> — </span><span class="desc">ARP-based host discovery on local LAN</span></div>
+<div class="blank"></div>
+<div class="subhead">Web Application Testing</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">nikto -h &lt;url&gt;                       </span><span class="sep"> — </span><span class="desc">web server vuln scanner</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">gobuster dir -u &lt;url&gt; -w &lt;wordlist&gt;  </span><span class="sep"> — </span><span class="desc">directory/file brute force</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ffuf -u &lt;url&gt;/FUZZ -w &lt;wordlist&gt;     </span><span class="sep"> — </span><span class="desc">fast web fuzzer</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sqlmap -u "&lt;url&gt;" --dbs              </span><span class="sep"> — </span><span class="desc">automated SQL injection testing</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">burpsuite / zaproxy                  </span><span class="sep"> — </span><span class="desc">intercepting proxies (GUI)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">whatweb &lt;url&gt;                        </span><span class="sep"> — </span><span class="desc">fingerprint web tech stack</span></div>
+<div class="blank"></div>
+<div class="subhead">Password Attacks</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">hydra -l &lt;user&gt; -P &lt;wordlist&gt; &lt;target&gt; &lt;service&gt;  </span><span class="sep"> — </span><span class="desc">online brute force (ssh, ftp, http-post-form, etc.)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">john --wordlist=&lt;wordlist&gt; &lt;hashfile&gt;             </span><span class="sep"> — </span><span class="desc">offline hash cracking</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">hashcat -m &lt;hash-mode&gt; -a 0 &lt;hashfile&gt; &lt;wordlist&gt; </span><span class="sep"> — </span><span class="desc">GPU-accelerated cracking</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">crackmapexec smb &lt;target&gt; -u &lt;user&gt; -p &lt;passlist&gt; </span><span class="sep"> — </span><span class="desc">SMB credential spraying</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">crunch &lt;min&gt; &lt;max&gt; &lt;charset&gt; -o wordlist.txt      </span><span class="sep"> — </span><span class="desc">generate custom wordlists</span></div>
+<div class="blank"></div>
+<div class="subhead">Wireless</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">iwconfig / iw dev                    </span><span class="sep"> — </span><span class="desc">check wireless interfaces</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo airmon-ng start wlan0           </span><span class="sep"> — </span><span class="desc">enable monitor mode</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo airodump-ng wlan0mon            </span><span class="sep"> — </span><span class="desc">capture nearby APs/clients</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo aireplay-ng --deauth 5 -a &lt;bssid&gt; wlan0mon </span><span class="sep"> — </span><span class="desc">deauth attack (own network / authorized only)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">aircrack-ng -w &lt;wordlist&gt; &lt;capfile&gt;  </span><span class="sep"> — </span><span class="desc">crack captured WPA handshake</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">wifite                               </span><span class="sep"> — </span><span class="desc">automated wireless attack wrapper</span></div>
+<div class="blank"></div>
+<div class="subhead">Sniffing / MITM</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo tcpdump -i &lt;iface&gt; -w capture.pcap   </span><span class="sep"> — </span><span class="desc">packet capture to file</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">wireshark / tshark                        </span><span class="sep"> — </span><span class="desc">packet analysis (GUI/CLI)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo ettercap -T -i &lt;iface&gt; -M arp:remote /&lt;target1&gt;/ /&lt;target2&gt;/  </span><span class="sep"> — </span><span class="desc">ARP MITM</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo bettercap -iface &lt;iface&gt;             </span><span class="sep"> — </span><span class="desc">modern MITM/recon Swiss-army tool</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">responder -I &lt;iface&gt;                      </span><span class="sep"> — </span><span class="desc">LLMNR/NBT-NS/mDNS poisoning</span></div>
+<div class="blank"></div>
+<div class="subhead">Exploitation</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">msfconsole                           </span><span class="sep"> — </span><span class="desc">Metasploit Framework</span></div>
+<div class="code-wrap"><pre class="code">    search &lt;term&gt;
+    use &lt;exploit/path&gt;
+    set RHOSTS &lt;target&gt;
+    set LHOST &lt;your-ip&gt;
+    run / exploit</pre></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">searchsploit &lt;term&gt;                  </span><span class="sep"> — </span><span class="desc">search local Exploit-DB copy</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">msfvenom -p &lt;payload&gt; LHOST=&lt;ip&gt; LPORT=&lt;port&gt; -f exe -o shell.exe  </span><span class="sep"> — </span><span class="desc">generate payloads</span></div>
+<div class="blank"></div>
+<div class="subhead">Post-Exploitation / Privilege Escalation</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">linpeas.sh / winpeas.exe             </span><span class="sep"> — </span><span class="desc">automated privesc enumeration scripts</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo -l                              </span><span class="sep"> — </span><span class="desc">check what current user can run as root</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">find / -perm -4000 -type f 2&gt;/dev/null </span><span class="sep"> — </span><span class="desc">find SUID binaries</span></div>
+<div class="blank"></div>
+<div class="subhead">Forensics</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">autopsy                              </span><span class="sep"> — </span><span class="desc">GUI disk forensics</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">volatility3 -f &lt;memdump&gt; windows.pslist  </span><span class="sep"> — </span><span class="desc">memory forensics</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">binwalk &lt;file&gt;                       </span><span class="sep"> — </span><span class="desc">extract embedded files/firmware analysis</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">exiftool &lt;file&gt;                      </span><span class="sep"> — </span><span class="desc">metadata extraction</span></div>
+<div class="blank"></div>
+<div class="subhead">Reporting</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">CherryTree / dradis / faraday        </span><span class="sep"> — </span><span class="desc">note-taking/reporting tools included in Kali</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Always log commands with `script` or `tmux` logging when doing engagement work</span></div>
+<div class="blank"></div>
+<div class="plain">Reminder: only run scanning/exploitation/wireless-attack tools against systems you own or have explicit written authorization to test.</div>
+<div class="blank"></div></div></section>
+<section class="filesec" id="file-ubuntu" data-cat="SYSTEM"><header class="filehead"><span class="tag">ENTRY 02</span><h2>Ubuntu</h2></header><div class="filebody"><div class="plain">(current as of Aug 2026 — latest LTS is 26.04 "Resolute Raccoon", released April 2026, supported to April 2031.</div>
+<div class="plain">24.04 LTS "Noble Numbat" is still widely deployed and supported until 2029. Point release 26.04.1 landed Aug 4 2026.)</div>
+<div class="blank"></div>
+<div class="subhead">Version &amp; System Info</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">lsb_release -a          </span><span class="sep"> — </span><span class="desc">Ubuntu version/codename</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">cat /etc/os-release</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">uname -r                </span><span class="sep"> — </span><span class="desc">kernel version</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">do-release-upgrade      </span><span class="sep"> — </span><span class="desc">upgrade to the next Ubuntu release (run only when ready; back up first)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">hostnamectl              </span><span class="sep"> — </span><span class="desc">hostname, OS, kernel, virtualization info in one place</span></div>
+<div class="blank"></div>
+<div class="subhead">Package Management (APT)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo apt update                   </span><span class="sep"> — </span><span class="desc">refresh package index</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo apt upgrade                  </span><span class="sep"> — </span><span class="desc">upgrade installed packages</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo apt full-upgrade             </span><span class="sep"> — </span><span class="desc">upgrade + handle package removals/dependency changes</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo apt install &lt;pkg&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo apt remove &lt;pkg&gt;             </span><span class="sep"> — </span><span class="desc">remove but keep config files</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo apt purge &lt;pkg&gt;              </span><span class="sep"> — </span><span class="desc">remove including config files</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo apt autoremove               </span><span class="sep"> — </span><span class="desc">clean up unused dependencies</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">apt search &lt;term&gt; / apt show &lt;pkg&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">apt list --installed</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo apt-mark hold &lt;pkg&gt;          </span><span class="sep"> — </span><span class="desc">prevent a package from being upgraded</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo dpkg -i package.deb          </span><span class="sep"> — </span><span class="desc">install a local .deb file</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo dpkg --configure -a          </span><span class="sep"> — </span><span class="desc">fix a broken dpkg state</span></div>
+<div class="blank"></div>
+<div class="subhead">Snap &amp; Flatpak</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">snap list / snap install &lt;pkg&gt; / snap remove &lt;pkg&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">snap refresh                      </span><span class="sep"> — </span><span class="desc">update all snaps</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">flatpak install &lt;pkg&gt; / flatpak list  </span><span class="sep"> — </span><span class="desc">if flatpak is set up (not default)</span></div>
+<div class="blank"></div>
+<div class="subhead">Users &amp; Permissions</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo adduser &lt;name&gt;               </span><span class="sep"> — </span><span class="desc">interactive user creation (preferred over useradd)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo usermod -aG sudo &lt;name&gt;      </span><span class="sep"> — </span><span class="desc">grant sudo access</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo deluser &lt;name&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">passwd                            </span><span class="sep"> — </span><span class="desc">change your own password</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo passwd -l &lt;name&gt;             </span><span class="sep"> — </span><span class="desc">lock an account</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">chmod / chown</span><span class="sep"> — </span><span class="desc">standard permission tools (see bash cheat sheet for syntax details)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">groups &lt;name&gt;                     </span><span class="sep"> — </span><span class="desc">list a user's groups</span></div>
+<div class="blank"></div>
+<div class="subhead">Services (systemd)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">systemctl status &lt;service&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo systemctl start|stop|restart|enable|disable &lt;service&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">See systemd_cheatsheet.txt for the full rundown</span></div>
+<div class="blank"></div>
+<div class="plain">Firewall (UFW — Uncomplicated Firewall, Ubuntu's default front-end for nftables)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo ufw status verbose</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo ufw enable / disable</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo ufw allow 22/tcp</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo ufw allow from &lt;ip&gt; to any port 22</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo ufw deny &lt;port&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo ufw delete allow &lt;port&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo ufw app list                 </span><span class="sep"> — </span><span class="desc">list registered app profiles (nginx, openssh, etc.)</span></div>
+<div class="blank"></div>
+<div class="subhead">Disk &amp; Filesystem</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">df -h                             </span><span class="sep"> — </span><span class="desc">disk space by mount</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">du -sh * | sort -h                </span><span class="sep"> — </span><span class="desc">directory sizes, sorted</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">lsblk                             </span><span class="sep"> — </span><span class="desc">block devices/partitions</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">mount / umount</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo fdisk -l                     </span><span class="sep"> — </span><span class="desc">list disks/partitions</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo apt install ncdu; ncdu /     </span><span class="sep"> — </span><span class="desc">interactive disk usage explorer</span></div>
+<div class="blank"></div>
+<div class="subhead">Networking (Ubuntu-specific)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ip a / ip route                   </span><span class="sep"> — </span><span class="desc">modern replacement for ifconfig/route</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">netplan                            </span><span class="sep"> — </span><span class="desc">Ubuntu's network config system: edit /etc/netplan/*.yaml, then `sudo netplan apply`</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">resolvectl status                 </span><span class="sep"> — </span><span class="desc">DNS resolver status (systemd-resolved)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">See networking_commands_cheatsheet.txt for general tools (ss, dig, tcpdump, etc.)</span></div>
+<div class="blank"></div>
+<div class="subhead">Logs &amp; Diagnostics</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">journalctl -xe                    </span><span class="sep"> — </span><span class="desc">recent systemd logs with explanations</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">journalctl -u &lt;service&gt; -f        </span><span class="sep"> — </span><span class="desc">follow logs for one service</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">dmesg -T | tail                   </span><span class="sep"> — </span><span class="desc">kernel ring buffer, human-readable timestamps</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo apt install lsof; sudo lsof -i :&lt;port&gt;  </span><span class="sep"> — </span><span class="desc">what's using a port</span></div>
+<div class="blank"></div>
+<div class="subhead">Common Gotchas</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">"Unattended upgrades" runs security patches automatically by default</span><span class="sep"> — </span><span class="desc">check /etc/apt/apt.conf.d/50unattended-upgrades</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ubuntu 26.04 defaults to GNOME 50 on Wayland</span><span class="sep"> — </span><span class="desc">some older X11-only tools may need `sudo apt install ubuntu-session` fallback or XWayland</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">After a kernel upgrade, reboot before trusting `uname -r` output</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Use `needrestart` (installed by default on server images) after upgrades to see which services need restarting</span></div>
+<div class="blank"></div></div></section>
+<section class="filesec" id="file-bash" data-cat="SYSTEM"><header class="filehead"><span class="tag">ENTRY 03</span><h2>Bash</h2></header><div class="filebody"><div class="blank"></div>
+<div class="subhead">Shebang &amp; Script Basics</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">#!/usr/bin/env bash           </span><span class="sep"> — </span><span class="desc">portable shebang line</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">chmod +x script.sh &amp;&amp; ./script.sh  </span><span class="sep"> — </span><span class="desc">make executable and run</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">set -euo pipefail              </span><span class="sep"> — </span><span class="desc">exit on error, unset var, or failed pipe stage (put near top of every script)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">set -x                         </span><span class="sep"> — </span><span class="desc">print each command before running it (debugging)</span></div>
+<div class="blank"></div>
+<div class="subhead">Variables</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">name="value"                   </span><span class="sep"> — </span><span class="desc">no spaces around =</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">echo "$name"                   </span><span class="sep"> — </span><span class="desc">always quote variable expansions</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">readonly PI=3.14               </span><span class="sep"> — </span><span class="desc">constant</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">unset name                     </span><span class="sep"> — </span><span class="desc">remove a variable</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">local x=1                      </span><span class="sep"> — </span><span class="desc">inside a function, scope to that function</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">${var:-default}                </span><span class="sep"> — </span><span class="desc">use default if var unset/empty</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">${var:=default}                </span><span class="sep"> — </span><span class="desc">same, and assigns default to var</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">${var:?error message}          </span><span class="sep"> — </span><span class="desc">exit with error if var unset</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">${#var}                        </span><span class="sep"> — </span><span class="desc">length of string</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">${var#prefix} / ${var##prefix} </span><span class="sep"> — </span><span class="desc">strip shortest/longest matching prefix</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">${var%suffix} / ${var%%suffix} </span><span class="sep"> — </span><span class="desc">strip shortest/longest matching suffix</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">${var/old/new}                 </span><span class="sep"> — </span><span class="desc">replace first match</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">${var//old/new}                </span><span class="sep"> — </span><span class="desc">replace all matches</span></div>
+<div class="blank"></div>
+<div class="subhead">Arrays</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">arr=(a b c)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">echo "${arr[0]}"               </span><span class="sep"> — </span><span class="desc">first element</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">echo "${arr[@]}"               </span><span class="sep"> — </span><span class="desc">all elements</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">echo "${#arr[@]}"               </span><span class="sep"> — </span><span class="desc">array length</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">arr+=(d)                       </span><span class="sep"> — </span><span class="desc">append</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">for item in "${arr[@]}"; do ...; done</span></div>
+<div class="blank"></div>
+<div class="subhead">Conditionals</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">if [[ condition ]]; then ... elif ...; else ...; fi</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">[[ -f file ]]   </span><span class="sep"> — </span><span class="desc">file exists and is regular file</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">[[ -d dir ]]    </span><span class="sep"> — </span><span class="desc">directory exists</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">[[ -z "$s" ]]   </span><span class="sep"> — </span><span class="desc">string is empty</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">[[ -n "$s" ]]   </span><span class="sep"> — </span><span class="desc">string is non-empty</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">[[ "$a" == "$b" ]] </span><span class="sep"> — </span><span class="desc">string equality (use [[ ]], not [ ], for pattern/regex support)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">[[ "$a" =~ regex ]]</span><span class="sep"> — </span><span class="desc">regex match</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">(( a &gt; b ))     </span><span class="sep"> — </span><span class="desc">arithmetic comparison</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">case "$var" in pattern1) ... ;; pattern2) ... ;; *) ... ;; esac</span></div>
+<div class="blank"></div>
+<div class="subhead">Loops</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">for i in {1..10}; do ...; done</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">for f in *.txt; do ...; done</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">while read -r line; do ...; done &lt; file.txt</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">until [[ condition ]]; do ...; done</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">break / continue</span></div>
+<div class="blank"></div>
+<div class="subhead">Functions</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">my_func() { echo "$1 $2"; return 0; }</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">my_func arg1 arg2</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">$1, $2, ...</span><span class="sep"> — </span><span class="desc">positional args inside function/script; $@ all args; $# arg count; $0 script name</span></div>
+<div class="blank"></div>
+<div class="subhead">Input/Output &amp; Redirection</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">cmd &gt; file         </span><span class="sep"> — </span><span class="desc">stdout to file (overwrite)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">cmd &gt;&gt; file         </span><span class="sep"> — </span><span class="desc">stdout append</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">cmd 2&gt; file         </span><span class="sep"> — </span><span class="desc">stderr to file</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">cmd &amp;&gt; file         </span><span class="sep"> — </span><span class="desc">both stdout and stderr</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">cmd 2&gt;&amp;1            </span><span class="sep"> — </span><span class="desc">redirect stderr to wherever stdout is going</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">cmd &lt; file          </span><span class="sep"> — </span><span class="desc">stdin from file</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">cmd1 | cmd2         </span><span class="sep"> — </span><span class="desc">pipe stdout of cmd1 into cmd2</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">cmd &lt;&lt;&lt; "string"    </span><span class="sep"> — </span><span class="desc">here-string</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">cmd &lt;&lt;EOF ... EOF   </span><span class="sep"> — </span><span class="desc">heredoc</span></div>
+<div class="blank"></div>
+<div class="subhead">Process Management</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">command &amp;           </span><span class="sep"> — </span><span class="desc">run in background</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">jobs                </span><span class="sep"> — </span><span class="desc">list background jobs</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">fg %1 / bg %1        </span><span class="sep"> — </span><span class="desc">bring job to foreground/background</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">nohup command &amp;      </span><span class="sep"> — </span><span class="desc">survive terminal close</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">kill -9 &lt;pid&gt;        </span><span class="sep"> — </span><span class="desc">force kill</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">pkill -f &lt;name&gt;      </span><span class="sep"> — </span><span class="desc">kill by matching process name</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ps aux | grep &lt;name&gt; </span><span class="sep"> — </span><span class="desc">find a process</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">wait                 </span><span class="sep"> — </span><span class="desc">wait for background jobs to finish</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">trap 'cleanup' EXIT  </span><span class="sep"> — </span><span class="desc">run cleanup function on script exit</span></div>
+<div class="blank"></div>
+<div class="subhead">Text Processing</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">grep -rniE "pattern" .       </span><span class="sep"> — </span><span class="desc">recursive, case-insensitive, line numbers, extended regex</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sed 's/old/new/g' file       </span><span class="sep"> — </span><span class="desc">stream replace</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sed -i 's/old/new/g' file    </span><span class="sep"> — </span><span class="desc">in-place replace</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">awk '{print $2}' file        </span><span class="sep"> — </span><span class="desc">print 2nd column</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">awk -F, '{print $1}' file    </span><span class="sep"> — </span><span class="desc">set field separator</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sort -k2,2 -n file           </span><span class="sep"> — </span><span class="desc">sort by 2nd field numerically</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">uniq -c                      </span><span class="sep"> — </span><span class="desc">count duplicate lines (input must be sorted first)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">cut -d: -f1 /etc/passwd      </span><span class="sep"> — </span><span class="desc">extract field by delimiter</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">tr 'a-z' 'A-Z'               </span><span class="sep"> — </span><span class="desc">translate characters</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">wc -l file                   </span><span class="sep"> — </span><span class="desc">count lines</span></div>
+<div class="blank"></div>
+<div class="subhead">Find &amp; Xargs</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">find . -name "*.log" -mtime -7     </span><span class="sep"> — </span><span class="desc">files modified in last 7 days</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">find . -type f -size +100M          </span><span class="sep"> — </span><span class="desc">files over 100MB</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">find . -name "*.tmp" -delete</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">find . -name "*.txt" -exec grep -l "TODO" {} \;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">find . -print0 | xargs -0 -I{} cmd {}  </span><span class="sep"> — </span><span class="desc">safe for filenames with spaces</span></div>
+<div class="blank"></div>
+<div class="subhead">Command Substitution &amp; Arithmetic</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">result=$(command)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">result=$((1 + 2))</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">((i++))</span></div>
+<div class="blank"></div>
+<div class="subhead">Useful One-Liners</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">history | grep &lt;term&gt;                </span><span class="sep"> — </span><span class="desc">search command history</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">alias ll='ls -alF'                   </span><span class="sep"> — </span><span class="desc">add to ~/.bashrc to persist</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">diff &lt;(cmd1) &lt;(cmd2)                  </span><span class="sep"> — </span><span class="desc">process substitution to diff command output</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">watch -n 2 'command'                  </span><span class="sep"> — </span><span class="desc">rerun command every 2s</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">echo $?                               </span><span class="sep"> — </span><span class="desc">exit code of last command</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">xdotool / entr</span><span class="sep"> — </span><span class="desc">not builtin but common companions for automation/file-watching</span></div>
+<div class="blank"></div></div></section>
+<section class="filesec" id="file-networking" data-cat="SYSTEM"><header class="filehead"><span class="tag">ENTRY 04</span><h2>Networking</h2></header><div class="filebody"><div class="subhead">NETWORKING COMMANDS CHEAT SHEET (Linux-focused)</div>
+<div class="plain">(current as of Aug 2026 — `ip` and `ss` are the modern standard tools; `ifconfig`/`netstat`/`route` are deprecated</div>
+<div class="plain">net-tools commands that may not even be installed by default on current Ubuntu/Kali, but still show up in old guides.)</div>
+<div class="blank"></div>
+<div class="subhead">IP Configuration</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ip a / ip addr show          </span><span class="sep"> — </span><span class="desc">list interfaces and IPs (replaces ifconfig)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ip link show                 </span><span class="sep"> — </span><span class="desc">list interfaces, link state</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo ip link set &lt;iface&gt; up|down</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ip route / ip r               </span><span class="sep"> — </span><span class="desc">routing table (replaces route)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo ip addr add &lt;ip&gt;/&lt;cidr&gt; dev &lt;iface&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ip neigh                      </span><span class="sep"> — </span><span class="desc">ARP/neighbor table (replaces arp -a)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">hostname -I                   </span><span class="sep"> — </span><span class="desc">quick list of this machine's IPs</span></div>
+<div class="blank"></div>
+<div class="subhead">DNS</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">dig &lt;domain&gt;                  </span><span class="sep"> — </span><span class="desc">full DNS query with all details</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">dig &lt;domain&gt; +short           </span><span class="sep"> — </span><span class="desc">just the answer</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">dig -x &lt;ip&gt;                   </span><span class="sep"> — </span><span class="desc">reverse DNS lookup</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">dig @&lt;server&gt; &lt;domain&gt;        </span><span class="sep"> — </span><span class="desc">query a specific DNS server</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">nslookup &lt;domain&gt;             </span><span class="sep"> — </span><span class="desc">older but still common tool</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">resolvectl status             </span><span class="sep"> — </span><span class="desc">systemd-resolved status (current DNS servers per interface, on systemd distros)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">cat /etc/resolv.conf          </span><span class="sep"> — </span><span class="desc">configured resolvers (may be managed automatically)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">host &lt;domain&gt;                 </span><span class="sep"> — </span><span class="desc">simple lookup</span></div>
+<div class="blank"></div>
+<div class="subhead">Connectivity Testing</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ping &lt;host&gt;                   </span><span class="sep"> — </span><span class="desc">basic reachability/latency</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ping -c 4 &lt;host&gt;              </span><span class="sep"> — </span><span class="desc">send exactly 4 packets</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">traceroute &lt;host&gt;             </span><span class="sep"> — </span><span class="desc">hop-by-hop path</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">mtr &lt;host&gt;                    </span><span class="sep"> — </span><span class="desc">combines ping + traceroute, live updating (install: apt install mtr)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">curl -v &lt;url&gt;                 </span><span class="sep"> — </span><span class="desc">verbose HTTP request, shows headers/handshake</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">curl -o /dev/null -s -w "%{http_code} %{time_total}\n" &lt;url&gt;  </span><span class="sep"> — </span><span class="desc">quick status+timing check</span></div>
+<div class="blank"></div>
+<div class="subhead">Sockets &amp; Ports</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ss -tulpn                     </span><span class="sep"> — </span><span class="desc">all listening TCP/UDP sockets with process info (replaces netstat -tulpn)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ss -tan                       </span><span class="sep"> — </span><span class="desc">all TCP connections</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo lsof -i :&lt;port&gt;           </span><span class="sep"> — </span><span class="desc">what process is using a port</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo lsof -i -P -n            </span><span class="sep"> — </span><span class="desc">all network connections with process names, no DNS/service-name resolution (faster)</span></div>
+<div class="blank"></div>
+<div class="subhead">Firewall</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo ufw status verbose        </span><span class="sep"> — </span><span class="desc">Ubuntu's front-end (see ubuntu_cheatsheet.txt)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo iptables -L -n -v         </span><span class="sep"> — </span><span class="desc">legacy but still common firewall listing</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo nft list ruleset          </span><span class="sep"> — </span><span class="desc">nftables (modern backend both ufw and iptables-nft use now)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo iptables -A INPUT -p tcp --dport 22 -j ACCEPT  </span><span class="sep"> — </span><span class="desc">example raw iptables rule</span></div>
+<div class="blank"></div>
+<div class="subhead">Packet Capture &amp; Analysis</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo tcpdump -i &lt;iface&gt;                      </span><span class="sep"> — </span><span class="desc">live capture</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo tcpdump -i &lt;iface&gt; -w file.pcap         </span><span class="sep"> — </span><span class="desc">capture to file</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo tcpdump -i &lt;iface&gt; port 443             </span><span class="sep"> — </span><span class="desc">filter by port</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo tcpdump -i &lt;iface&gt; host &lt;ip&gt;            </span><span class="sep"> — </span><span class="desc">filter by host</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">tshark -r file.pcap                          </span><span class="sep"> — </span><span class="desc">CLI wireshark, read a capture file</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">wireshark                                     </span><span class="sep"> — </span><span class="desc">GUI packet analyzer</span></div>
+<div class="blank"></div>
+<div class="subhead">Scanning</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">nmap &lt;target&gt;                                 </span><span class="sep"> — </span><span class="desc">basic port scan</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">nmap -sV -sC &lt;target&gt;                         </span><span class="sep"> — </span><span class="desc">service versions + default scripts</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">nmap -p 1-1000 &lt;target&gt;                       </span><span class="sep"> — </span><span class="desc">scan a port range</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">nmap -sn &lt;cidr&gt;                               </span><span class="sep"> — </span><span class="desc">ping sweep, host discovery only, no port scan</span></div>
+<div class="blank"></div>
+<div class="subhead">Transfers</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">curl -O &lt;url&gt;                                 </span><span class="sep"> — </span><span class="desc">download, keep remote filename</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">curl -L &lt;url&gt;                                 </span><span class="sep"> — </span><span class="desc">follow redirects</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">wget &lt;url&gt;                                    </span><span class="sep"> — </span><span class="desc">simple download</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">wget -c &lt;url&gt;                                 </span><span class="sep"> — </span><span class="desc">resume a partial download</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">See ssh_sftp_rsync_cheatsheet.txt for scp/sftp/rsync</span></div>
+<div class="blank"></div>
+<div class="subhead">SSH Tunneling (also see ssh_sftp_rsync_cheatsheet.txt)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ssh -L &lt;local_port&gt;:&lt;dest_host&gt;:&lt;dest_port&gt; &lt;user&gt;@&lt;jump_host&gt;   </span><span class="sep"> — </span><span class="desc">local port forward</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ssh -D &lt;port&gt; &lt;user&gt;@&lt;host&gt;                   </span><span class="sep"> — </span><span class="desc">dynamic SOCKS proxy through the SSH connection</span></div>
+<div class="blank"></div>
+<div class="subhead">Bandwidth / Throughput</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">iperf3 -s                                     </span><span class="sep"> — </span><span class="desc">run a server on one host</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">iperf3 -c &lt;server-ip&gt;                         </span><span class="sep"> — </span><span class="desc">test throughput from client to that server</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">vnstat                                        </span><span class="sep"> — </span><span class="desc">track bandwidth usage over time (needs to run persistently)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">speedtest-cli                                 </span><span class="sep"> — </span><span class="desc">quick internet speed test</span></div>
+<div class="blank"></div>
+<div class="subhead">Troubleshooting Workflow (typical order)</div>
+<div class="blank"></div>
+<div class="plain">1. ip a — confirm the interface has an IP</div>
+<div class="plain">2. ip route — confirm a default route exists</div>
+<div class="plain">3. ping &lt;gateway&gt; — confirm link to gateway works</div>
+<div class="plain">4. ping 8.8.8.8 — confirm internet reachability (bypasses DNS)</div>
+<div class="plain">5. dig google.com — confirm DNS resolution works</div>
+<div class="plain">6. curl -v &lt;url&gt; / traceroute — narrow down where in the path it's failing</div>
+<div class="plain">7. ss -tulpn / sudo lsof -i — confirm the local service is actually listening if it's a "can't connect to my own service" issue</div>
+<div class="blank"></div></div></section>
+<section class="filesec" id="file-systemd" data-cat="SYSTEM"><header class="filehead"><span class="tag">ENTRY 05</span><h2>systemd</h2></header><div class="filebody"><div class="blank"></div>
+<div class="subhead">Service Control (systemctl)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo systemctl status &lt;service&gt;              </span><span class="sep"> — </span><span class="desc">check status, recent log lines</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo systemctl start &lt;service&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo systemctl stop &lt;service&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo systemctl restart &lt;service&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo systemctl reload &lt;service&gt;              </span><span class="sep"> — </span><span class="desc">reload config without full restart (if the service supports it)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo systemctl enable &lt;service&gt;              </span><span class="sep"> — </span><span class="desc">start automatically at boot</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo systemctl disable &lt;service&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo systemctl enable --now &lt;service&gt;        </span><span class="sep"> — </span><span class="desc">enable and start in one command</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo systemctl is-active &lt;service&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo systemctl is-enabled &lt;service&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">systemctl list-units --type=service          </span><span class="sep"> — </span><span class="desc">all loaded services</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">systemctl list-units --type=service --state=failed  </span><span class="sep"> — </span><span class="desc">just the failed ones</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">systemctl list-unit-files                    </span><span class="sep"> — </span><span class="desc">all installed unit files and their enabled state</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo systemctl daemon-reload                 </span><span class="sep"> — </span><span class="desc">reload unit files after editing one (required before changes take effect)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo systemctl mask &lt;service&gt;                </span><span class="sep"> — </span><span class="desc">fully block a service from starting, even manually (stronger than disable)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo systemctl unmask &lt;service&gt;</span></div>
+<div class="blank"></div>
+<div class="subhead">Logs (journalctl)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">journalctl -u &lt;service&gt;                      </span><span class="sep"> — </span><span class="desc">logs for one unit</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">journalctl -u &lt;service&gt; -f                   </span><span class="sep"> — </span><span class="desc">follow live</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">journalctl -xe                               </span><span class="sep"> — </span><span class="desc">recent logs with explanations, jump to end</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">journalctl --since "1 hour ago"</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">journalctl --since "2026-08-25" --until "2026-08-26"</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">journalctl -b                                </span><span class="sep"> — </span><span class="desc">logs since last boot</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">journalctl -b -1                             </span><span class="sep"> — </span><span class="desc">logs from previous boot</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">journalctl -p err                            </span><span class="sep"> — </span><span class="desc">filter by priority (emerg/alert/crit/err/warning/notice/info/debug)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">journalctl --disk-usage                      </span><span class="sep"> — </span><span class="desc">how much space the journal is using</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo journalctl --vacuum-time=2weeks         </span><span class="sep"> — </span><span class="desc">trim old logs</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo journalctl --vacuum-size=500M           </span><span class="sep"> — </span><span class="desc">cap journal size</span></div>
+<div class="blank"></div>
+<div class="subhead">Creating a Custom Service (Unit File)</div>
+<div class="blank"></div>
+<div class="subhead">Path: /etc/systemd/system/myapp.service</div>
+<div class="blank"></div>
+<div class="code-wrap"><pre class="code">    [Unit]
+    Description=My App
+    After=network.target
+
+    [Service]
+    Type=simple
+    User=myuser
+    WorkingDirectory=/opt/myapp
+    ExecStart=/usr/bin/python3 /opt/myapp/main.py
+    Restart=on-failure
+    RestartSec=5
+
+    [Install]
+    WantedBy=multi-user.target</pre></div>
+<div class="blank"></div>
+<div class="subhead">Then:</div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo systemctl daemon-reload</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo systemctl enable --now myapp</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">journalctl -u myapp -f     </span><span class="sep"> — </span><span class="desc">watch it come up</span></div>
+<div class="blank"></div>
+<div class="plain">Common Type= values: simple (default, long-running foreground process), oneshot (runs and exits), forking (daemonizes itself), notify (signals readiness via sd_notify)</div>
+<div class="blank"></div>
+<div class="plain">Timers (cron alternative, integrates with systemd/journalctl)</div>
+<div class="blank"></div>
+<div class="subhead">Path: /etc/systemd/system/myapp.timer</div>
+<div class="blank"></div>
+<div class="code-wrap"><pre class="code">    [Unit]
+    Description=Run myapp daily
+
+    [Timer]
+    OnCalendar=daily
+    Persistent=true
+
+    [Install]
+    WantedBy=timers.target</pre></div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Pair with a matching myapp.service (Type=oneshot) that does the actual work</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo systemctl enable --now myapp.timer</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">systemctl list-timers                        </span><span class="sep"> — </span><span class="desc">see all timers and next run time</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">See cron_cheatsheet.txt for the traditional crontab approach</span><span class="sep"> — </span><span class="desc">timers are generally preferred on systemd systems for better logging/dependency handling</span></div>
+<div class="blank"></div>
+<div class="subhead">Boot Analysis</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">systemd-analyze                              </span><span class="sep"> — </span><span class="desc">total boot time</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">systemd-analyze blame                        </span><span class="sep"> — </span><span class="desc">which services took longest to start</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">systemd-analyze critical-chain               </span><span class="sep"> — </span><span class="desc">critical path of boot dependencies</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">systemctl get-default / set-default &lt;target&gt; </span><span class="sep"> — </span><span class="desc">default boot target (e.g. multi-user.target vs graphical.target)</span></div>
+<div class="blank"></div>
+<div class="subhead">Troubleshooting</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">systemctl status &lt;service&gt; -l                </span><span class="sep"> — </span><span class="desc">full (non-truncated) status output</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo systemctl reset-failed &lt;service&gt;        </span><span class="sep"> — </span><span class="desc">clear a "failed" state so it can be restarted cleanly</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">systemd-cgls                                 </span><span class="sep"> — </span><span class="desc">view the control group hierarchy of running processes</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ps -eo pid,unit,cmd                           </span><span class="sep"> — </span><span class="desc">see which systemd unit owns each process (cgroup-aware distros)</span></div>
+<div class="blank"></div></div></section>
+<section class="filesec" id="file-cron" data-cat="SYSTEM"><header class="filehead"><span class="tag">ENTRY 06</span><h2>cron</h2></header><div class="filebody"><div class="blank"></div>
+<div class="subhead">Crontab Field Syntax</div>
+<div class="blank"></div>
+<div class="code-wrap"><pre class="code">    * * * * * command
+    │ │ │ │ │
+    │ │ │ │ └── day of week (0-7, both 0 and 7 = Sunday)
+    │ │ │ └──── month (1-12)
+    │ │ └────── day of month (1-31)
+    │ └──────── hour (0-23)
+    └────────── minute (0-59)</pre></div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Comma: 1,15 </span><span class="sep"> — </span><span class="desc">specific values</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Dash: 1-5   </span><span class="sep"> — </span><span class="desc">range</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Slash: */15 </span><span class="sep"> — </span><span class="desc">every N (e.g. */15 in minute field = every 15 min)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Combine: 0 9-17/2 * * 1-5 </span><span class="sep"> — </span><span class="desc">on the hour, every 2 hours from 9-17, weekdays only</span></div>
+<div class="blank"></div>
+<div class="subhead">Managing Your Crontab</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">crontab -e           </span><span class="sep"> — </span><span class="desc">edit your own crontab (opens in $EDITOR)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">crontab -l            </span><span class="sep"> — </span><span class="desc">list your current crontab</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">crontab -r            </span><span class="sep"> — </span><span class="desc">remove your entire crontab (careful — no confirmation, and no undo)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo crontab -u &lt;user&gt; -e  </span><span class="sep"> — </span><span class="desc">edit another user's crontab</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sudo crontab -u &lt;user&gt; -l</span></div>
+<div class="blank"></div>
+<div class="subhead">Special Strings (shortcuts for common schedules)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">@reboot    </span><span class="sep"> — </span><span class="desc">run once at startup</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">@yearly / @annually </span><span class="sep"> — </span><span class="desc">0 0 1 1 *</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">@monthly   </span><span class="sep"> — </span><span class="desc">0 0 1 * *</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">@weekly    </span><span class="sep"> — </span><span class="desc">0 0 * * 0</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">@daily / @midnight   </span><span class="sep"> — </span><span class="desc">0 0 * * *</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">@hourly    </span><span class="sep"> — </span><span class="desc">0 * * * *</span></div>
+<div class="blank"></div>
+<div class="subhead">Examples</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">0 3 * * * /home/user/backup.sh                      </span><span class="sep"> — </span><span class="desc">run backup.sh daily at 3:00 AM</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">*/5 * * * * /usr/bin/python3 /opt/check.py           </span><span class="sep"> — </span><span class="desc">every 5 minutes</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">0 0 * * 0 /home/user/weekly_report.sh                </span><span class="sep"> — </span><span class="desc">every Sunday at midnight</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">30 2 1 * * /home/user/monthly_cleanup.sh              </span><span class="sep"> — </span><span class="desc">2:30 AM on the 1st of every month</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">@reboot /home/user/start_service.sh                   </span><span class="sep"> — </span><span class="desc">run once when the system boots</span></div>
+<div class="blank"></div>
+<div class="subhead">System-Wide Cron Locations (no crontab -e needed)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/etc/crontab                   </span><span class="sep"> — </span><span class="desc">system crontab, has an extra "user" field before the command</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/etc/cron.d/                   </span><span class="sep"> — </span><span class="desc">drop-in files, same format as /etc/crontab (used by packages)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/etc/cron.daily/ , cron.hourly/ , cron.weekly/ , cron.monthly/  </span><span class="sep"> — </span><span class="desc">just drop an executable script here, no cron syntax needed, run via run-parts</span></div>
+<div class="blank"></div>
+<div class="subhead">Logging &amp; Debugging</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Cron jobs run with a minimal environment</span><span class="sep"> — </span><span class="desc">no full $PATH, no interactive shell config loaded. Always use absolute paths in scripts/commands.</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Redirect output so you can debug failures: 0 3 * * * /home/user/backup.sh &gt;&gt; /home/user/backup.log 2&gt;&amp;1</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">grep CRON /var/log/syslog         </span><span class="sep"> — </span><span class="desc">see cron's own execution log (Debian/Ubuntu)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">journalctl -u cron -f              </span><span class="sep"> — </span><span class="desc">same, via systemd journal on distros where cron logs there</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">MAILTO="" at the top of a crontab disables cron's default behavior of emailing job output to the user (set to an address instead if you want the emails)</span></div>
+<div class="blank"></div>
+<div class="subhead">Environment Gotchas</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Cron doesn't source ~/.bashrc or ~/.profile</span><span class="sep"> — </span><span class="desc">if a script relies on env vars, source them explicitly inside the script or set them at the top of the crontab: PATH=/usr/local/bin:/usr/bin:/bin</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Test scripts with `env -i /bin/bash -c "script.sh"` to simulate cron's minimal environment</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">For scripts needing a specific working directory, `cd` explicitly inside the script rather than assuming cron starts there</span><span class="sep"> — </span><span class="desc">cron typically starts in the user's home directory</span></div>
+<div class="blank"></div>
+<div class="subhead">Cron vs systemd Timers</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Cron: simpler syntax, universally available, minimal logging by default</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">systemd timers: better logging via journalctl, can express dependencies (e.g. wait for network), handle missed runs on a system that was off (Persistent=true)</span><span class="sep"> — </span><span class="desc">see systemd_cheatsheet.txt</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Either is fine for simple scheduled jobs; timers are worth the extra setup for anything where you need reliable logging or missed-run recovery</span></div>
+<div class="blank"></div></div></section>
+<section class="filesec" id="file-ssh" data-cat="SYSTEM"><header class="filehead"><span class="tag">ENTRY 07</span><h2>SSH / SFTP / rsync</h2></header><div class="filebody"><div class="blank"></div>
+<div class="subhead">SSH Basics</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">ssh &lt;user&gt;@&lt;host&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">ssh &lt;user&gt;@&lt;host&gt; -p &lt;port&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ssh &lt;user&gt;@&lt;host&gt; "command"                   </span><span class="sep"> — </span><span class="desc">run a single remote command and exit</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ssh -i &lt;keyfile&gt; &lt;user&gt;@&lt;host&gt;                </span><span class="sep"> — </span><span class="desc">use a specific private key</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">exit / Ctrl+D                                  </span><span class="sep"> — </span><span class="desc">close the session</span></div>
+<div class="blank"></div>
+<div class="subhead">SSH Keys</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ssh-keygen -t ed25519 -C "comment"             </span><span class="sep"> — </span><span class="desc">generate a modern key pair (preferred over RSA now)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ssh-keygen -t rsa -b 4096 -C "comment"         </span><span class="sep"> — </span><span class="desc">if ed25519 isn't supported by the target (rare/legacy systems)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ssh-copy-id -i &lt;keyfile&gt;.pub &lt;user&gt;@&lt;host&gt;     </span><span class="sep"> — </span><span class="desc">install your public key on a remote host's authorized_keys</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Manual alternative: cat ~/.ssh/id_ed25519.pub | ssh &lt;user&gt;@&lt;host&gt; "mkdir -p ~/.ssh &amp;&amp; cat &gt;&gt; ~/.ssh/authorized_keys"</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">chmod 700 ~/.ssh &amp;&amp; chmod 600 ~/.ssh/authorized_keys  </span><span class="sep"> — </span><span class="desc">required permissions or SSH will reject the key</span></div>
+<div class="blank"></div>
+<div class="subhead">SSH Agent (avoid re-typing your key passphrase)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">eval "$(ssh-agent -s)"</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">ssh-add ~/.ssh/id_ed25519</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ssh-add -l                                      </span><span class="sep"> — </span><span class="desc">list loaded keys</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ssh-add -D                                      </span><span class="sep"> — </span><span class="desc">remove all keys from agent</span></div>
+<div class="blank"></div>
+<div class="subhead">SSH Config File (~/.ssh/config)</div>
+<div class="blank"></div>
+<div class="code-wrap"><pre class="code">    Host myvps
+        HostName 203.0.113.10
+        User myuser
+        Port 22
+        IdentityFile ~/.ssh/id_ed25519
+
+    Then just: ssh myvps</pre></div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Handy directives: ForwardAgent yes, ServerAliveInterval 60, StrictHostKeyChecking accept-new</span></div>
+<div class="blank"></div>
+<div class="subhead">Port Forwarding / Tunneling</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ssh -L &lt;local_port&gt;:&lt;dest_host&gt;:&lt;dest_port&gt; &lt;user&gt;@&lt;jump_host&gt;  </span><span class="sep"> — </span><span class="desc">local forward (access a remote-only service on localhost)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ssh -R &lt;remote_port&gt;:&lt;local_host&gt;:&lt;local_port&gt; &lt;user&gt;@&lt;host&gt;    </span><span class="sep"> — </span><span class="desc">remote forward (expose local service to the remote side)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ssh -D &lt;port&gt; &lt;user&gt;@&lt;host&gt;                                      </span><span class="sep"> — </span><span class="desc">dynamic SOCKS proxy (route browser traffic through the SSH host)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ssh -N -f ...                                                    </span><span class="sep"> — </span><span class="desc">don't execute a remote command, just hold the forward, run in background</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ssh -J &lt;jumphost&gt; &lt;user&gt;@&lt;target&gt;                                </span><span class="sep"> — </span><span class="desc">jump host / bastion hop in one command</span></div>
+<div class="blank"></div>
+<div class="subhead">SFTP</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sftp &lt;user&gt;@&lt;host&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">sftp -i &lt;keyfile&gt; -P &lt;port&gt; &lt;user&gt;@&lt;host&gt;</span></div>
+<div class="subhead">Within an sftp session:</div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ls / lls             </span><span class="sep"> — </span><span class="desc">remote / local listing</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">cd / lcd              </span><span class="sep"> — </span><span class="desc">remote / local change dir</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">get &lt;file&gt;             </span><span class="sep"> — </span><span class="desc">download</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">get -r &lt;dir&gt;           </span><span class="sep"> — </span><span class="desc">download recursively</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">put &lt;file&gt;             </span><span class="sep"> — </span><span class="desc">upload</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">put -r &lt;dir&gt;           </span><span class="sep"> — </span><span class="desc">upload recursively</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">pwd / lpwd</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">exit</span></div>
+<div class="blank"></div>
+<div class="plain">SCP (simple copy, being superseded by rsync/sftp but still common)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">scp &lt;file&gt; &lt;user&gt;@&lt;host&gt;:&lt;remote_path&gt;         </span><span class="sep"> — </span><span class="desc">upload</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">scp &lt;user&gt;@&lt;host&gt;:&lt;remote_path&gt; &lt;local_path&gt;   </span><span class="sep"> — </span><span class="desc">download</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">scp -r &lt;dir&gt; &lt;user&gt;@&lt;host&gt;:&lt;remote_path&gt;       </span><span class="sep"> — </span><span class="desc">recursive</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">scp -P &lt;port&gt; ...                               </span><span class="sep"> — </span><span class="desc">note: capital -P for scp, lowercase -p for ssh/sftp</span></div>
+<div class="blank"></div>
+<div class="subhead">Rsync</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">rsync -avz &lt;src&gt; &lt;user&gt;@&lt;host&gt;:&lt;dest&gt;           </span><span class="sep"> — </span><span class="desc">archive mode, verbose, compressed — the standard combo</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">rsync -avz -e "ssh -p &lt;port&gt;" &lt;src&gt; &lt;dest&gt;      </span><span class="sep"> — </span><span class="desc">custom SSH port</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">rsync -avz --delete &lt;src&gt; &lt;dest&gt;                </span><span class="sep"> — </span><span class="desc">mirror exactly, deleting files at dest not present in src (careful — destructive)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">rsync -avzn &lt;src&gt; &lt;dest&gt;                         </span><span class="sep"> — </span><span class="desc">dry run, add -n to preview what would happen</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">rsync -avz --progress &lt;src&gt; &lt;dest&gt;               </span><span class="sep"> — </span><span class="desc">show per-file progress</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">rsync -avz --exclude='.git' --exclude='node_modules' &lt;src&gt; &lt;dest&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Trailing slash on source matters: `dir/` copies dir's contents into dest; `dir` (no slash) copies dir itself into dest</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">rsync over SSH is the standard way to do incremental backups</span><span class="sep"> — </span><span class="desc">only changed blocks transfer after the first sync</span></div>
+<div class="blank"></div>
+<div class="subhead">Hardening an SSH Server (/etc/ssh/sshd_config)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">PermitRootLogin no                (or prohibit-password if you must allow root with keys only)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">PasswordAuthentication no         </span><span class="sep"> — </span><span class="desc">key-only auth</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Port &lt;non-default&gt;                </span><span class="sep"> — </span><span class="desc">mild obscurity, not real security by itself</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">AllowUsers &lt;user1&gt; &lt;user2&gt;        </span><span class="sep"> — </span><span class="desc">restrict to specific accounts</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Restart after changes: sudo systemctl restart sshd</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Test config before restarting: sudo sshd -t</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Consider fail2ban to auto-block repeated failed login attempts</span></div>
+<div class="blank"></div>
+<div class="subhead">Troubleshooting</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ssh -v / -vv / -vvv &lt;host&gt;         </span><span class="sep"> — </span><span class="desc">verbose connection debugging, increasing detail</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ssh-keygen -R &lt;host&gt;                </span><span class="sep"> — </span><span class="desc">remove a stale host key from known_hosts (after host reinstall/IP reuse)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Permission denied (publickey) usually means: wrong key, key not in authorized_keys, or wrong permissions on ~/.ssh</span></div>
+<div class="blank"></div></div></section>
+<section class="filesec" id="file-tmux" data-cat="SYSTEM"><header class="filehead"><span class="tag">ENTRY 08</span><h2>tmux &amp; screen</h2></header><div class="filebody"><div class="plain">(both let a session survive SSH disconnects — tmux is the more modern, actively developed choice;</div>
+<div class="plain">screen is older but still preinstalled on many systems)</div>
+<div class="blank"></div>
+<div class="subhead">TMUX</div>
+<div class="blank"></div>
+<div class="subhead">Sessions</div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">tmux new -s &lt;name&gt;               </span><span class="sep"> — </span><span class="desc">start a new named session</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">tmux ls                          </span><span class="sep"> — </span><span class="desc">list sessions</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">tmux attach -t &lt;name&gt;            </span><span class="sep"> — </span><span class="desc">reattach to a session</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">tmux kill-session -t &lt;name&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b d                         </span><span class="sep"> — </span><span class="desc">detach from current session (Ctrl+b is the default "prefix" key)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">tmux rename-session -t &lt;old&gt; &lt;new&gt;</span></div>
+<div class="blank"></div>
+<div class="subhead">Windows (like tabs within a session)</div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b c                         </span><span class="sep"> — </span><span class="desc">create new window</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b ,                         </span><span class="sep"> — </span><span class="desc">rename current window</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b n / p                     </span><span class="sep"> — </span><span class="desc">next / previous window</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b &lt;number&gt;                  </span><span class="sep"> — </span><span class="desc">jump to window by number</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b w                         </span><span class="sep"> — </span><span class="desc">list windows, pick one</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b &amp;                         </span><span class="sep"> — </span><span class="desc">kill current window (with confirm)</span></div>
+<div class="blank"></div>
+<div class="subhead">Panes (splits within a window)</div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b %                         </span><span class="sep"> — </span><span class="desc">split vertically (side by side)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b "                         </span><span class="sep"> — </span><span class="desc">split horizontally (stacked)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b &lt;arrow key&gt;               </span><span class="sep"> — </span><span class="desc">move between panes</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b o                         </span><span class="sep"> — </span><span class="desc">cycle to next pane</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b z                         </span><span class="sep"> — </span><span class="desc">zoom/unzoom current pane (fullscreen toggle)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b x                         </span><span class="sep"> — </span><span class="desc">kill current pane (with confirm)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b {  / Ctrl+b }             </span><span class="sep"> — </span><span class="desc">swap pane position</span></div>
+<div class="blank"></div>
+<div class="subhead">Copy Mode (scrollback/search)</div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b [                         </span><span class="sep"> — </span><span class="desc">enter copy mode (scroll with arrows/PgUp, q to exit)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">In copy mode: Space to start selection, Enter to copy (vi-style keys if configured)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b ]                         </span><span class="sep"> — </span><span class="desc">paste</span></div>
+<div class="blank"></div>
+<div class="subhead">Misc</div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b ?                         </span><span class="sep"> — </span><span class="desc">list all keybindings</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+b :                         </span><span class="sep"> — </span><span class="desc">command prompt (e.g. :set -g mouse on)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">tmux source-file ~/.tmux.conf    </span><span class="sep"> — </span><span class="desc">reload config after editing</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Add `set -g mouse on` to ~/.tmux.conf to enable mouse-based pane/window selection and scrolling</span></div>
+<div class="blank"></div>
+<div class="subhead">SCREEN</div>
+<div class="blank"></div>
+<div class="subhead">Sessions</div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">screen -S &lt;name&gt;                 </span><span class="sep"> — </span><span class="desc">start a new named session</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">screen -ls                       </span><span class="sep"> — </span><span class="desc">list sessions</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">screen -r &lt;name&gt;                 </span><span class="sep"> — </span><span class="desc">reattach</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">screen -r -d &lt;name&gt;              </span><span class="sep"> — </span><span class="desc">force-detach elsewhere and reattach here (if it says "already attached")</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+a d                         </span><span class="sep"> — </span><span class="desc">detach (Ctrl+a is screen's prefix key)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">exit (inside session)            </span><span class="sep"> — </span><span class="desc">terminate the session entirely</span></div>
+<div class="blank"></div>
+<div class="subhead">Windows</div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+a c                         </span><span class="sep"> — </span><span class="desc">create new window</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+a n / p                     </span><span class="sep"> — </span><span class="desc">next / previous window</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+a "                         </span><span class="sep"> — </span><span class="desc">list windows, pick one</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+a A                         </span><span class="sep"> — </span><span class="desc">rename current window</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+a k                         </span><span class="sep"> — </span><span class="desc">kill current window (with confirm)</span></div>
+<div class="blank"></div>
+<div class="subhead">Splits</div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+a S                         </span><span class="sep"> — </span><span class="desc">split horizontally</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+a |                         </span><span class="sep"> — </span><span class="desc">split vertically (newer screen versions)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+a Tab                       </span><span class="sep"> — </span><span class="desc">move to next split region</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+a X                         </span><span class="sep"> — </span><span class="desc">close current region</span></div>
+<div class="blank"></div>
+<div class="subhead">Copy Mode</div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+a [                         </span><span class="sep"> — </span><span class="desc">enter copy/scrollback mode</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl+a ]                         </span><span class="sep"> — </span><span class="desc">paste</span></div>
+<div class="blank"></div>
+<div class="subhead">Quick Reference: Which to Use</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Reaching for it on a fresh VPS with nothing installed? screen is more likely to be preinstalled</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Want proper scriptable splits, better session management, and active development? tmux is generally preferred today</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Both survive SSH disconnects</span><span class="sep"> — </span><span class="desc">the core reason to use either is keeping long-running processes (builds, downloads, server consoles) alive when your connection drops</span></div>
+<div class="blank"></div></div></section>
+<section class="filesec" id="file-git" data-cat="DEV"><header class="filehead"><span class="tag">ENTRY 09</span><h2>Git</h2></header><div class="filebody"><div class="plain">(current as of Aug 2026 — latest stable is Git 2.55. Git 3.0 is expected later in 2026 and will default new repos</div>
+<div class="plain">to SHA-256 hashing and the "main" branch name, among other changes — existing repos/workflows below are unaffected</div>
+<div class="plain">until you opt in or upgrade.)</div>
+<div class="blank"></div>
+<div class="subhead">Setup</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git config --global user.name "Name"</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git config --global user.email "email@example.com"</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git config --global init.defaultBranch main</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git config --global core.editor "nano"       </span><span class="sep"> — </span><span class="desc">or vim/code --wait, etc.</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git config --list                             </span><span class="sep"> — </span><span class="desc">show effective config</span></div>
+<div class="blank"></div>
+<div class="subhead">Starting a Repo</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git init</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git clone &lt;url&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git clone &lt;url&gt; &lt;dirname&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git clone --depth 1 &lt;url&gt;                     </span><span class="sep"> — </span><span class="desc">shallow clone, latest commit only</span></div>
+<div class="blank"></div>
+<div class="subhead">Basic Workflow</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git status</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git add &lt;file&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git add .                                      </span><span class="sep"> — </span><span class="desc">stage everything in current dir</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git add -p                                      </span><span class="sep"> — </span><span class="desc">interactively stage hunks</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git commit -m "message"</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git commit -am "message"                       </span><span class="sep"> — </span><span class="desc">stage tracked-file changes + commit in one step</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git push</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git push -u origin &lt;branch&gt;                     </span><span class="sep"> — </span><span class="desc">first push of a new branch, sets upstream</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git pull</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git pull --rebase                               </span><span class="sep"> — </span><span class="desc">rebase instead of merge on pull (cleaner history)</span></div>
+<div class="blank"></div>
+<div class="subhead">Branching</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git branch                                      </span><span class="sep"> — </span><span class="desc">list local branches</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git branch -a                                    </span><span class="sep"> — </span><span class="desc">list all branches incl. remote</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git branch &lt;name&gt;                                </span><span class="sep"> — </span><span class="desc">create branch</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git checkout &lt;branch&gt; / git switch &lt;branch&gt;      </span><span class="sep"> — </span><span class="desc">switch branch</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git checkout -b &lt;name&gt; / git switch -c &lt;name&gt;    </span><span class="sep"> — </span><span class="desc">create and switch</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git branch -d &lt;name&gt;                             </span><span class="sep"> — </span><span class="desc">delete branch (safe, checks merged)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git branch -D &lt;name&gt;                             </span><span class="sep"> — </span><span class="desc">force delete</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git branch -m &lt;old&gt; &lt;new&gt;                         </span><span class="sep"> — </span><span class="desc">rename branch</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git push origin --delete &lt;branch&gt;                 </span><span class="sep"> — </span><span class="desc">delete remote branch</span></div>
+<div class="blank"></div>
+<div class="subhead">Merging &amp; Rebasing</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git merge &lt;branch&gt;                                </span><span class="sep"> — </span><span class="desc">merge branch into current</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git rebase &lt;branch&gt;                               </span><span class="sep"> — </span><span class="desc">replay current branch's commits on top of another</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git rebase -i HEAD~3                              </span><span class="sep"> — </span><span class="desc">interactive rebase, last 3 commits (squash/reorder/edit)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git rebase --continue / --abort                   </span><span class="sep"> — </span><span class="desc">during a conflicted rebase</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git cherry-pick &lt;commit&gt;                          </span><span class="sep"> — </span><span class="desc">apply one commit onto current branch</span></div>
+<div class="blank"></div>
+<div class="subhead">Undoing Changes</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git restore &lt;file&gt;                                </span><span class="sep"> — </span><span class="desc">discard unstaged changes to a file</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git restore --staged &lt;file&gt;                       </span><span class="sep"> — </span><span class="desc">unstage (keep working changes)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git reset --soft HEAD~1                            </span><span class="sep"> — </span><span class="desc">undo last commit, keep changes staged</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git reset --mixed HEAD~1                           </span><span class="sep"> — </span><span class="desc">undo last commit, keep changes unstaged (default mode)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git reset --hard HEAD~1                            </span><span class="sep"> — </span><span class="desc">undo last commit AND discard changes (destructive)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git revert &lt;commit&gt;                                </span><span class="sep"> — </span><span class="desc">create a new commit that undoes a previous one (safe for shared history)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git commit --amend -m "new message"                </span><span class="sep"> — </span><span class="desc">edit the last commit (don't amend pushed/shared commits)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git clean -fd                                      </span><span class="sep"> — </span><span class="desc">remove untracked files/dirs (careful — destructive, use -n first to preview)</span></div>
+<div class="blank"></div>
+<div class="subhead">Stashing</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git stash                                          </span><span class="sep"> — </span><span class="desc">shelve current changes</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git stash -u                                       </span><span class="sep"> — </span><span class="desc">include untracked files</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git stash list</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git stash pop                                      </span><span class="sep"> — </span><span class="desc">reapply and drop the stash</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git stash apply                                    </span><span class="sep"> — </span><span class="desc">reapply but keep the stash</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git stash drop                                     </span><span class="sep"> — </span><span class="desc">delete a stash without applying</span></div>
+<div class="blank"></div>
+<div class="subhead">Inspecting History</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git log --oneline --graph --all                    </span><span class="sep"> — </span><span class="desc">compact visual history</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git log -p &lt;file&gt;                                  </span><span class="sep"> — </span><span class="desc">show diffs per commit for a file</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git log --author="name"</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git diff                                            </span><span class="sep"> — </span><span class="desc">unstaged changes</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git diff --staged                                   </span><span class="sep"> — </span><span class="desc">staged changes</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git diff &lt;branch1&gt;..&lt;branch2&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git blame &lt;file&gt;                                    </span><span class="sep"> — </span><span class="desc">who last touched each line</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git show &lt;commit&gt;</span></div>
+<div class="blank"></div>
+<div class="subhead">Remotes</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git remote -v</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git remote add origin &lt;url&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git remote set-url origin &lt;url&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git fetch                                           </span><span class="sep"> — </span><span class="desc">download refs/objects without merging</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git fetch --all --prune                             </span><span class="sep"> — </span><span class="desc">also remove stale remote-tracking branches</span></div>
+<div class="blank"></div>
+<div class="subhead">Tags</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git tag                                             </span><span class="sep"> — </span><span class="desc">list tags</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git tag v1.0.0</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git tag -a v1.0.0 -m "message"                      </span><span class="sep"> — </span><span class="desc">annotated tag</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">git push origin v1.0.0</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git push origin --tags                              </span><span class="sep"> — </span><span class="desc">push all tags</span></div>
+<div class="blank"></div>
+<div class="subhead">.gitignore</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Standard patterns: *.log, node_modules/, .env, __pycache__/, .venv/</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">git rm -r --cached &lt;path&gt;                           </span><span class="sep"> — </span><span class="desc">stop tracking something already committed, then add it to .gitignore</span></div>
+<div class="blank"></div>
+<div class="subhead">Common Gotchas</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Never force-push (`git push -f`) to a shared branch without warning collaborators</span><span class="sep"> — </span><span class="desc">it rewrites history others may have based work on</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">`git pull` = fetch + merge by default; if you want a linear history use `git pull --rebase` or set pull.rebase = true globally</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Detached HEAD after checking out a commit directly</span><span class="sep"> — </span><span class="desc">create a branch (`git switch -c newbranch`) before committing further work</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">`.git/config` is per-repo; `~/.gitconfig` is global</span><span class="sep"> — </span><span class="desc">local overrides global</span></div>
+<div class="blank"></div></div></section>
+<section class="filesec" id="file-docker" data-cat="DEV"><header class="filehead"><span class="tag">ENTRY 10</span><h2>Docker</h2></header><div class="filebody"><div class="plain">(current as of Aug 2026 — use `docker compose` with a space; the old hyphenated `docker-compose` v1 standalone</div>
+<div class="plain">binary is deprecated. Compose V2 ships as a Docker CLI plugin by default on current installs.)</div>
+<div class="blank"></div>
+<div class="subhead">Images</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker pull &lt;image&gt;[:tag]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker images / docker image ls</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker rmi &lt;image&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker build -t &lt;name&gt;:&lt;tag&gt; .             </span><span class="sep"> — </span><span class="desc">build from Dockerfile in current dir</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker tag &lt;image&gt; &lt;repo&gt;/&lt;image&gt;:&lt;tag&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker push &lt;repo&gt;/&lt;image&gt;:&lt;tag&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker history &lt;image&gt;                      </span><span class="sep"> — </span><span class="desc">show layer history</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker image prune                          </span><span class="sep"> — </span><span class="desc">remove dangling (untagged) images</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker image prune -a                       </span><span class="sep"> — </span><span class="desc">remove all unused images</span></div>
+<div class="blank"></div>
+<div class="subhead">Containers</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker run &lt;image&gt;                          </span><span class="sep"> — </span><span class="desc">run, foreground</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker run -d &lt;image&gt;                       </span><span class="sep"> — </span><span class="desc">detached (background)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker run -it &lt;image&gt; bash                 </span><span class="sep"> — </span><span class="desc">interactive with a shell</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker run --rm &lt;image&gt;                     </span><span class="sep"> — </span><span class="desc">auto-remove container on exit</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker run -p &lt;host_port&gt;:&lt;container_port&gt; &lt;image&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker run -v &lt;host_path&gt;:&lt;container_path&gt; &lt;image&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker run -e VAR=value &lt;image&gt;             </span><span class="sep"> — </span><span class="desc">set environment variable</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker run --name &lt;name&gt; &lt;image&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker ps                                   </span><span class="sep"> — </span><span class="desc">running containers</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker ps -a                                </span><span class="sep"> — </span><span class="desc">all containers, including stopped</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker stop / start / restart &lt;container&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker rm &lt;container&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker rm -f &lt;container&gt;                    </span><span class="sep"> — </span><span class="desc">force remove a running container</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker exec -it &lt;container&gt; bash             </span><span class="sep"> — </span><span class="desc">shell into a running container</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker logs &lt;container&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker logs -f &lt;container&gt;                   </span><span class="sep"> — </span><span class="desc">follow logs</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker inspect &lt;container&gt;                   </span><span class="sep"> — </span><span class="desc">full JSON metadata</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker cp &lt;container&gt;:&lt;path&gt; &lt;host_path&gt;     </span><span class="sep"> — </span><span class="desc">copy file out of container (and reverse)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker stats                                 </span><span class="sep"> — </span><span class="desc">live resource usage per container</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker top &lt;container&gt;                       </span><span class="sep"> — </span><span class="desc">processes running inside a container</span></div>
+<div class="blank"></div>
+<div class="subhead">Volumes &amp; Networks</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker volume ls / create / rm / inspect &lt;name&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker network ls / create / rm / inspect &lt;name&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker run --network &lt;name&gt; &lt;image&gt;</span></div>
+<div class="blank"></div>
+<div class="subhead">Dockerfile Basics</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">FROM ubuntu:26.04</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">WORKDIR /app</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">COPY . .</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">RUN apt-get update &amp;&amp; apt-get install -y &lt;pkg&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">ENV KEY=value</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">EXPOSE 8080</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">CMD ["python3", "app.py"]                    </span><span class="sep"> — </span><span class="desc">default command when container starts</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ENTRYPOINT ["python3"]                       </span><span class="sep"> — </span><span class="desc">fixed executable, CMD becomes its args</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Multi-stage builds: use multiple FROM lines and `COPY --from=&lt;stage&gt;` to keep final images small</span></div>
+<div class="blank"></div>
+<div class="plain">Docker Compose (v2 — `docker compose`, no hyphen)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker compose up                            </span><span class="sep"> — </span><span class="desc">build+start all services, foreground</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker compose up -d                         </span><span class="sep"> — </span><span class="desc">detached</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker compose up -d --build                 </span><span class="sep"> — </span><span class="desc">rebuild images first</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker compose down                          </span><span class="sep"> — </span><span class="desc">stop and remove containers/networks</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker compose down -v                       </span><span class="sep"> — </span><span class="desc">also remove named volumes</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker compose ps</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker compose logs -f [service]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker compose exec &lt;service&gt; bash</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker compose restart &lt;service&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker compose build [service]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker compose pull                          </span><span class="sep"> — </span><span class="desc">pull latest images for all services</span></div>
+<div class="blank"></div>
+<div class="subhead">Example docker-compose.yml skeleton:</div>
+<div class="code-wrap"><pre class="code">    services:
+      web:
+        build: .
+        ports:
+          - "8080:8080"
+        environment:
+          - ENV=production
+        volumes:
+          - ./data:/app/data
+        depends_on:
+          - db
+      db:
+        image: postgres:17
+        volumes:
+          - dbdata:/var/lib/postgresql/data
+    volumes:
+      dbdata:</pre></div>
+<div class="blank"></div>
+<div class="subhead">Cleanup</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker system df                             </span><span class="sep"> — </span><span class="desc">disk usage summary</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker system prune                          </span><span class="sep"> — </span><span class="desc">remove stopped containers, unused networks, dangling images</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker system prune -a --volumes             </span><span class="sep"> — </span><span class="desc">aggressive cleanup, also removes unused images/volumes (careful, this is destructive)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker container prune                       </span><span class="sep"> — </span><span class="desc">remove all stopped containers</span></div>
+<div class="blank"></div>
+<div class="subhead">Registry</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker login [registry]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker logout [registry]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">docker search &lt;term&gt;</span></div>
+<div class="blank"></div>
+<div class="subhead">Troubleshooting</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker events                                </span><span class="sep"> — </span><span class="desc">live stream of Docker daemon events</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">docker inspect --format='{{.State.ExitCode}}' &lt;container&gt;  </span><span class="sep"> — </span><span class="desc">check why a container exited</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sudo systemctl status docker                 </span><span class="sep"> — </span><span class="desc">check the Docker daemon itself (see systemd_cheatsheet.txt)</span></div>
+<div class="blank"></div></div></section>
+<section class="filesec" id="file-python" data-cat="DEV"><header class="filehead"><span class="tag">ENTRY 11</span><h2>Python</h2></header><div class="filebody"><div class="plain">(current as of Aug 2026 — latest stable release is Python 3.14.7; 3.12/3.13 remain very common in production.</div>
+<div class="plain">3.14 brought a template string type (t-strings), a much faster incremental GC, and (experimentally) free-threaded/no-GIL builds.)</div>
+<div class="blank"></div>
+<div class="subhead">Environment &amp; Package Management</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">python3 --version</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">python3 -m venv .venv &amp;&amp; source .venv/bin/activate   </span><span class="sep"> — </span><span class="desc">create/activate a virtual environment (Windows: .venv\Scripts\activate)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">deactivate                                            </span><span class="sep"> — </span><span class="desc">leave the venv</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">pip install &lt;pkg&gt; / pip install -r requirements.txt</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">pip freeze &gt; requirements.txt</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">pip install --upgrade pip</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">uv</span><span class="sep"> — </span><span class="desc">modern, much faster alternative to pip/venv/pip-tools (uv venv, uv pip install, uv run) — worth using for new projects</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">pipx install &lt;tool&gt;      </span><span class="sep"> — </span><span class="desc">install CLI tools into isolated envs (don't pollute global/site python)</span></div>
+<div class="blank"></div>
+<div class="subhead">Basics &amp; Syntax</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Indentation defines blocks</span><span class="sep"> — </span><span class="desc">4 spaces is the PEP 8 standard</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">f-strings: f"{name} is {age} years old"</span><span class="sep"> — </span><span class="desc">f"{value:.2f}" for formatting</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Multi-line strings: """text"""</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Type hints: def add(a: int, b: int) -&gt; int: return a + b</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Walrus operator: if (n := len(data)) &gt; 10: ...</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">match/case (structural pattern matching, 3.10+):</span></div>
+<div class="code-wrap"><pre class="code">    match command:
+        case "start": ...
+        case "stop": ...
+        case _: ...</pre></div>
+<div class="blank"></div>
+<div class="subhead">Data Structures</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">list: mutable, ordered</span><span class="sep"> — </span><span class="desc">[1, 2, 3]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">tuple: immutable, ordered</span><span class="sep"> — </span><span class="desc">(1, 2, 3)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">dict: key-value</span><span class="sep"> — </span><span class="desc">{"a": 1}</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">set: unique, unordered</span><span class="sep"> — </span><span class="desc">{1, 2, 3}</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">List comprehension: [x**2 for x in range(10) if x % 2 == 0]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Dict comprehension: {k: v for k, v in items.items() if v}</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Unpacking: a, *rest = [1, 2, 3, 4]</span></div>
+<div class="blank"></div>
+<div class="subhead">Functions</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">def f(a, b=10, *args, **kwargs): ...</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Lambda: square = lambda x: x**2</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Decorators:</span></div>
+<div class="code-wrap"><pre class="code">    def timer(func):
+        def wrapper(*a, **kw):
+            ...
+            return func(*a, **kw)
+        return wrapper</pre></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Generators: use `yield` instead of `return` to produce a lazy iterator</span></div>
+<div class="blank"></div>
+<div class="subhead">Classes</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">class Foo:</span></div>
+<div class="code-wrap"><pre class="code">      def __init__(self, x):
+          self.x = x
+      def __repr__(self):
+          return f"Foo({self.x})"</pre></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Dataclasses (less boilerplate):</span></div>
+<div class="code-wrap"><pre class="code">    from dataclasses import dataclass
+    @dataclass
+    class Point:
+        x: int
+        y: int</pre></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Inheritance: class Bar(Foo): ...</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">super().__init__(...) to call parent constructor</span></div>
+<div class="blank"></div>
+<div class="subhead">Error Handling</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">try: ... except ValueError as e: ... else: ... finally: ...</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">raise ValueError("message")</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Custom exceptions: class MyError(Exception): pass</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Context managers: with open("file") as f: ...  (auto-closes even on error)</span></div>
+<div class="blank"></div>
+<div class="subhead">File I/O</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">with open("file.txt") as f: text = f.read()</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">with open("file.txt") as f: lines = f.readlines()</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">with open("out.txt", "w") as f: f.write("text")</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">import json; json.load(f) / json.dump(data, f, indent=2)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">import csv; csv.reader(f) / csv.DictReader(f)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">pathlib.Path("dir/file.txt")</span><span class="sep"> — </span><span class="desc">modern path handling, preferred over os.path for new code</span></div>
+<div class="blank"></div>
+<div class="subhead">Common Standard Library Modules</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">os / pathlib     </span><span class="sep"> — </span><span class="desc">filesystem</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">sys               </span><span class="sep"> — </span><span class="desc">argv, exit, path</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">subprocess.run(["cmd", "arg"], capture_output=True, text=True)  </span><span class="sep"> — </span><span class="desc">run shell commands</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">re                </span><span class="sep"> — </span><span class="desc">regex: re.search, re.match, re.findall, re.sub</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">datetime          </span><span class="sep"> — </span><span class="desc">dates/times</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">collections       </span><span class="sep"> — </span><span class="desc">Counter, defaultdict, namedtuple, deque</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">itertools         </span><span class="sep"> — </span><span class="desc">chain, product, combinations, groupby</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">argparse          </span><span class="sep"> — </span><span class="desc">CLI argument parsing</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">logging           </span><span class="sep"> — </span><span class="desc">prefer over print() for anything long-running</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">asyncio           </span><span class="sep"> — </span><span class="desc">async/await concurrency</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">typing            </span><span class="sep"> — </span><span class="desc">Optional, Union (or `X | None` since 3.10), List, Dict, Callable, TypedDict, Protocol</span></div>
+<div class="blank"></div>
+<div class="subhead">Debugging</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">import pdb; pdb.set_trace()  </span><span class="sep"> — </span><span class="desc">or just breakpoint() (built-in since 3.7)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">python3 -m pdb script.py</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">print(f"{var=}")              </span><span class="sep"> — </span><span class="desc">self-documenting debug print (3.8+)</span></div>
+<div class="blank"></div>
+<div class="subhead">Formatting, Linting, Type Checking</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">black .             </span><span class="sep"> — </span><span class="desc">opinionated auto-formatter</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ruff check . / ruff format .  </span><span class="sep"> — </span><span class="desc">very fast linter+formatter, increasingly the default choice</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">mypy . / pyright    </span><span class="sep"> — </span><span class="desc">static type checkers</span></div>
+<div class="blank"></div>
+<div class="subhead">Testing</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">pytest                      </span><span class="sep"> — </span><span class="desc">most common test runner</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">def test_add(): assert add(1, 2) == 3</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">pytest -k "pattern"          </span><span class="sep"> — </span><span class="desc">run matching tests only</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">pytest --cov                 </span><span class="sep"> — </span><span class="desc">coverage report (needs pytest-cov)</span></div>
+<div class="blank"></div>
+<div class="subhead">Quick Reference: Common Gotchas</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Mutable default args are a trap: def f(x=[]) shares the list across calls</span><span class="sep"> — </span><span class="desc">use None and set inside the function instead</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">`is` compares identity, `==` compares equality</span><span class="sep"> — </span><span class="desc">use `is` only for None/True/False/singleton checks</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">List slicing: lst[start:stop:step], lst[::-1] reverses</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Integer division: // (floor), true division: /</span></div>
+<div class="blank"></div></div></section>
+<section class="filesec" id="file-blender" data-cat="CREATIVE"><header class="filehead"><span class="tag">ENTRY 12</span><h2>Blender</h2></header><div class="filebody"><div class="plain">(current as of Aug 2026 — latest is Blender 5.2 LTS, released July 2026, updated to 5.2.1; supported until July 2028.</div>
+<div class="plain">Shortcuts below are default keymap on Windows/Linux — Mac substitutes Cmd for Ctrl in most cases.)</div>
+<div class="blank"></div>
+<div class="subhead">Navigation</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Middle Mouse Button (MMB) drag    </span><span class="sep"> — </span><span class="desc">orbit view</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Shift + MMB drag                  </span><span class="sep"> — </span><span class="desc">pan view</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Scroll wheel / Ctrl + MMB drag    </span><span class="sep"> — </span><span class="desc">zoom</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Numpad 1/3/7                      </span><span class="sep"> — </span><span class="desc">front/side/top ortho view (Ctrl+ for opposite side)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Numpad 0                           </span><span class="sep"> — </span><span class="desc">camera view</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Numpad 5                           </span><span class="sep"> — </span><span class="desc">toggle ortho/perspective</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Numpad .                           </span><span class="sep"> — </span><span class="desc">frame selected (view selected)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">~ (tilde)                          </span><span class="sep"> — </span><span class="desc">pie menu for view axes</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Home                               </span><span class="sep"> — </span><span class="desc">frame all objects in scene</span></div>
+<div class="blank"></div>
+<div class="subhead">Selection</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Left click                         </span><span class="sep"> — </span><span class="desc">select object</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Shift + click                      </span><span class="sep"> — </span><span class="desc">add to selection</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">A                                   </span><span class="sep"> — </span><span class="desc">select all</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Alt + A                            </span><span class="sep"> — </span><span class="desc">deselect all</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">B                                   </span><span class="sep"> — </span><span class="desc">box select</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">C                                   </span><span class="sep"> — </span><span class="desc">circle select</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">L (hover over mesh)                </span><span class="sep"> — </span><span class="desc">select linked geometry</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl + click (edit mode)           </span><span class="sep"> — </span><span class="desc">select shortest path between two points</span></div>
+<div class="blank"></div>
+<div class="subhead">Transform</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">G                                   </span><span class="sep"> — </span><span class="desc">grab/move (G, X/Y/Z to constrain axis, G X 5 to move exactly 5 units)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">R                                   </span><span class="sep"> — </span><span class="desc">rotate</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">S                                   </span><span class="sep"> — </span><span class="desc">scale</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Shift+X/Y/Z after G/R/S            </span><span class="sep"> — </span><span class="desc">exclude that axis instead of constrain to it</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Tab                                 </span><span class="sep"> — </span><span class="desc">toggle Object Mode / Edit Mode</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl + A                            </span><span class="sep"> — </span><span class="desc">apply transform (location/rotation/scale) in object mode</span></div>
+<div class="blank"></div>
+<div class="subhead">Object Mode Basics</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Shift + A                           </span><span class="sep"> — </span><span class="desc">add menu (mesh, curve, light, camera, etc.)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl + J                            </span><span class="sep"> — </span><span class="desc">join selected objects</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">P                                    </span><span class="sep"> — </span><span class="desc">separate (in edit mode, split selection into new object)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Shift + D                           </span><span class="sep"> — </span><span class="desc">duplicate</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Alt + D                             </span><span class="sep"> — </span><span class="desc">linked duplicate (shares mesh data)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">X / Delete                          </span><span class="sep"> — </span><span class="desc">delete object</span></div>
+<div class="blank"></div>
+<div class="subhead">Edit Mode (Mesh)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">1 / 2 / 3                           </span><span class="sep"> — </span><span class="desc">vertex / edge / face select mode</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">E                                    </span><span class="sep"> — </span><span class="desc">extrude</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl + R                            </span><span class="sep"> — </span><span class="desc">loop cut</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl + B                            </span><span class="sep"> — </span><span class="desc">bevel</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">K                                    </span><span class="sep"> — </span><span class="desc">knife tool</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">I                                    </span><span class="sep"> — </span><span class="desc">inset face</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">F                                    </span><span class="sep"> — </span><span class="desc">fill/make face between selected verts</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">M                                    </span><span class="sep"> — </span><span class="desc">merge menu (merge at center, by distance, etc.)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl + E                            </span><span class="sep"> — </span><span class="desc">edge menu (bridge edge loops, mark seam, etc.)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">X (in edit mode)                    </span><span class="sep"> — </span><span class="desc">delete menu (vertices/edges/faces/dissolve)</span></div>
+<div class="blank"></div>
+<div class="subhead">Modifiers (Properties panel, wrench icon)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Subdivision Surface                 </span><span class="sep"> — </span><span class="desc">smooth/subdivide mesh non-destructively</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Mirror                              </span><span class="sep"> — </span><span class="desc">symmetric modeling</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Array                               </span><span class="sep"> — </span><span class="desc">repeat geometry along an axis</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Boolean                             </span><span class="sep"> — </span><span class="desc">union/difference/intersect between meshes</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Solidify                            </span><span class="sep"> — </span><span class="desc">give thickness to a flat mesh</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl + numpad number                </span><span class="sep"> — </span><span class="desc">quick-set subdivision surface preview level</span></div>
+<div class="blank"></div>
+<div class="subhead">Materials &amp; Shading</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Shading workspace tab               </span><span class="sep"> — </span><span class="desc">node-based material editor</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Shift + A (in shader editor)        </span><span class="sep"> — </span><span class="desc">add shader nodes</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">New Material &gt; Base Color, Roughness, Metallic </span><span class="sep"> — </span><span class="desc">Principled BSDF is the default/standard shader</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Z                                    </span><span class="sep"> — </span><span class="desc">pie menu to switch viewport shading (wireframe/solid/material preview/rendered)</span></div>
+<div class="blank"></div>
+<div class="subhead">Rendering</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">F12                                  </span><span class="sep"> — </span><span class="desc">render current frame</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl + F12                           </span><span class="sep"> — </span><span class="desc">render animation</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Render Properties panel               </span><span class="sep"> — </span><span class="desc">choose engine: EEVEE Next (fast, real-time-ish) or Cycles (path-traced, higher quality)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Output Properties panel               </span><span class="sep"> — </span><span class="desc">set resolution, file format, output path</span></div>
+<div class="blank"></div>
+<div class="subhead">Animation</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">I (in timeline/viewport)              </span><span class="sep"> — </span><span class="desc">insert keyframe</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Alt + I                               </span><span class="sep"> — </span><span class="desc">clear keyframe</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Right-click a property &gt; Insert Keyframe </span><span class="sep"> — </span><span class="desc">keyframe a specific property (location, rotation, custom prop, etc.)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Timeline / Dope Sheet / Graph Editor  </span><span class="sep"> — </span><span class="desc">different views for editing animation curves</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Spacebar                              </span><span class="sep"> — </span><span class="desc">play/pause animation preview</span></div>
+<div class="blank"></div>
+<div class="subhead">File Management</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl + S                              </span><span class="sep"> — </span><span class="desc">save</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Ctrl + Shift + S                      </span><span class="sep"> — </span><span class="desc">save as</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">File &gt; External Data &gt; Pack Resources </span><span class="sep"> — </span><span class="desc">embed textures/etc. into the .blend file for portability</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Append vs Link (Shift+F1 / File &gt; Link)</span><span class="sep"> — </span><span class="desc">Append copies data into your file; Link references another .blend file live</span></div>
+<div class="blank"></div>
+<div class="subhead">Useful Add-ons (bundled or first-party)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Node Wrangler                         </span><span class="sep"> — </span><span class="desc">huge quality-of-life boost for shader/geometry node editing (enable in Preferences &gt; Add-ons)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Loop Tools                            </span><span class="sep"> — </span><span class="desc">extra mesh editing tools (relax, circularize, etc.)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">5.2 LTS added node-powered physics and remote asset library access</span><span class="sep"> — </span><span class="desc">check Preferences &gt; Add-ons for anything newly bundled</span></div>
+<div class="blank"></div>
+<div class="subhead">Quick Tips</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Middle-click-drag a slider to type an exact numeric value</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Hover over any UI element and press Ctrl+C to copy its data path (useful for scripting/drivers)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">N panel (press N in viewport)</span><span class="sep"> — </span><span class="desc">toggles the side panel with transform/item properties</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">The Blender Python console/scripting tab exposes the full `bpy` API for automation</span></div>
+<div class="blank"></div></div></section>
+<section class="filesec" id="file-minecraft" data-cat="GAME SERVER"><header class="filehead"><span class="tag">ENTRY 13</span><h2>Minecraft OP</h2></header><div class="filebody"><div class="plain">(current as of Aug 2026 — latest Java Edition release is 26.2 "Chaos Cubed"; command set below is stable across</div>
+<div class="plain">recent versions. Bedrock Edition commands overlap but differ in some syntax — noted where relevant.)</div>
+<div class="blank"></div>
+<div class="subhead">Permission Levels</div>
+<div class="blank"></div>
+<div class="plain">Java Edition ops are graded 0-4; the level decides which commands are usable:</div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Level 0</span><span class="sep"> — </span><span class="desc">no special permissions (default player)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Level 1</span><span class="sep"> — </span><span class="desc">bypasses spawn protection</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Level 2</span><span class="sep"> — </span><span class="desc">gameplay/cheat commands (give, tp, summon, gamerule, fill, effect, etc.)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Level 3</span><span class="sep"> — </span><span class="desc">moderation commands (op, deop, kick, ban, whitelist)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Level 4</span><span class="sep"> — </span><span class="desc">server administration (stop, save-all, publish/unpublish)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">`op-permission-level` in server.properties sets what level a plain /op grants (defaults to 4, i.e. full control)</span></div>
+<div class="blank"></div>
+<div class="subhead">Granting/Revoking Op</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/op &lt;player&gt;           </span><span class="sep"> — </span><span class="desc">make a player an operator (must be run from console, or by an existing level-3+ op)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/deop &lt;player&gt;         </span><span class="sep"> — </span><span class="desc">remove operator status</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Server console (no in-game player) always has full access regardless of ops.json</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ops.json in the server root stores op status and levels directly</span><span class="sep"> — </span><span class="desc">edit while server is stopped if needed</span></div>
+<div class="blank"></div>
+<div class="subhead">Player &amp; World Admin</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/whitelist add|remove &lt;player&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/whitelist on|off</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/whitelist list / reload</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/ban &lt;player&gt; [reason] / /banip &lt;ip&gt; [reason]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/pardon &lt;player&gt; / /pardon-ip &lt;ip&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/kick &lt;player&gt; [reason]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/list                   </span><span class="sep"> — </span><span class="desc">show online players</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/save-all               </span><span class="sep"> — </span><span class="desc">force a world save</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/save-off / /save-on    </span><span class="sep"> — </span><span class="desc">disable/enable autosave (useful before copying world files for backup)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/stop                   </span><span class="sep"> — </span><span class="desc">shut down the server (level 4)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/reload                 </span><span class="sep"> — </span><span class="desc">reload data packs/functions without restarting</span></div>
+<div class="blank"></div>
+<div class="subhead">Teleport &amp; Movement</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/tp &lt;player&gt; &lt;target&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/tp &lt;player&gt; &lt;x&gt; &lt;y&gt; &lt;z&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/spreadplayers &lt;x&gt; &lt;z&gt; &lt;spread&gt; &lt;range&gt; &lt;players...&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/worldborder set &lt;size&gt; [seconds]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/worldborder center &lt;x&gt; &lt;z&gt;</span></div>
+<div class="blank"></div>
+<div class="subhead">Game Mode &amp; Rules</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/gamemode survival|creative|adventure|spectator [player]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/gamerule &lt;rule&gt; &lt;value&gt;  </span><span class="sep"> — </span><span class="desc">e.g. /gamerule keepInventory true, /gamerule doDaylightCycle false, /gamerule mobGriefing false</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/difficulty peaceful|easy|normal|hard</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/defaultgamemode &lt;mode&gt;</span></div>
+<div class="blank"></div>
+<div class="subhead">Items, Entities, and World Editing</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/give &lt;player&gt; &lt;item&gt; [count]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/clear &lt;player&gt; [item]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/summon &lt;entity&gt; [x y z] [nbt]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/kill &lt;target&gt;           </span><span class="sep"> — </span><span class="desc">/kill @e[type=item] to clear dropped items</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/setblock &lt;x y z&gt; &lt;block&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/fill &lt;x1 y1 z1&gt; &lt;x2 y2 z2&gt; &lt;block&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/clone &lt;x1 y1 z1&gt; &lt;x2 y2 z2&gt; &lt;dest x y z&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/data get|merge|remove block|entity &lt;target&gt;</span></div>
+<div class="blank"></div>
+<div class="subhead">Player State</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/effect give &lt;player&gt; &lt;effect&gt; [seconds] [amplifier]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/effect clear &lt;player&gt; [effect]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/xp add &lt;player&gt; &lt;amount&gt; [levels|points]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/enchant &lt;player&gt; &lt;enchantment&gt; [level]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/gamemode / /health via /data merge entity for advanced cases</span></div>
+<div class="blank"></div>
+<div class="subhead">Time &amp; Weather</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/time set day|night|noon|midnight|&lt;ticks&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/time add &lt;ticks&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/weather clear|rain|thunder [seconds]</span></div>
+<div class="blank"></div>
+<div class="subhead">Scoreboard &amp; Function Systems (advanced admin/datapack use)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/scoreboard objectives add &lt;name&gt; &lt;criteria&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/scoreboard players set &lt;target&gt; &lt;objective&gt; &lt;value&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/datapack list / enable / disable</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/function &lt;namespace:path&gt;</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">/schedule function &lt;namespace:path&gt; &lt;time&gt;</span></div>
+<div class="blank"></div>
+<div class="subhead">Selectors (used throughout the above)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">@p nearest player, @a all players, @r random player, @e all entities, @s the command's source</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Filters: [type=], [name=], [tag=], [distance=], [gamemode=], [limit=], [sort=]</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Example: /kill @e[type=zombie,distance=..10]</span></div>
+<div class="blank"></div>
+<div class="subhead">Server Files Worth Knowing</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">server.properties     </span><span class="sep"> — </span><span class="desc">op-permission-level, difficulty, gamemode, whitelist toggle, view-distance, max-players, etc.</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">ops.json / whitelist.json / banned-players.json / banned-ips.json</span><span class="sep"> — </span><span class="desc">plain JSON, editable while server is stopped</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">If running Paper/Spigot instead of vanilla, most vanilla commands still work, plus plugin-added commands (e.g. /essentials-related commands)</span><span class="sep"> — </span><span class="desc">check the specific plugin's docs</span></div>
+<div class="blank"></div>
+<div class="subhead">Bedrock Edition Notes</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/op and /deop work the same conceptually but Bedrock has no numeric permission levels</span><span class="sep"> — </span><span class="desc">it's binary operator or not, controlled via permissions.json on Bedrock Dedicated Server</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Some commands differ slightly (e.g. selectors and NBT syntax can diverge)</span><span class="sep"> — </span><span class="desc">check the specific Bedrock server software's docs if running one</span></div>
+<div class="blank"></div></div></section>
+<section class="filesec" id="file-contabo" data-cat="INFRASTRUCTURE"><header class="filehead"><span class="tag">ENTRY 14</span><h2>Contabo VPS</h2></header><div class="filebody"><div class="plain">(current as of Aug 2026 — Contabo has been migrating features into a redesigned "new" Customer Control Panel;</div>
+<div class="plain">a few tasks like plan upgrades/location changes may still live in the legacy panel)</div>
+<div class="blank"></div>
+<div class="subhead">Customer Control Panel (my.contabo.com)</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">My Servers       </span><span class="sep"> — </span><span class="desc">see all VPS instances: name, location, status, IP, plan</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Server actions available from the panel: Start / Stop / Restart, Reinstall OS, Reset Password, Rescue System, Snapshots, Backups (paid add-on), DNS management</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Sub-users with role-based access can be added if you're managing servers as a team</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Toggle light/dark mode and language (EN/DE/ES/PT) from the top bar</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">DevOps tools: Cloud-init scripts, SSH key management, and custom image upload/deployment are available through the panel for VPS provisioning</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Legacy panel link is still surfaced in the UI for plan upgrades/location changes not yet ported over</span></div>
+<div class="blank"></div>
+<div class="subhead">Initial VPS Setup (do this immediately after provisioning)</div>
+<div class="blank"></div>
+<div class="subhead">1. SSH in with the root password emailed at signup:</div>
+<div class="code-wrap"><pre class="code">   ssh root@&lt;your-vps-ip&gt;</pre></div>
+<div class="subhead">2. Add your SSH public key and disable password auth:</div>
+<div class="code-wrap"><pre class="code">   - Add key: mkdir -p ~/.ssh &amp;&amp; echo "&lt;pubkey&gt;" &gt;&gt; ~/.ssh/authorized_keys &amp;&amp; chmod 700 ~/.ssh &amp;&amp; chmod 600 ~/.ssh/authorized_keys
+   - Edit /etc/ssh/sshd_config: PasswordAuthentication no, PermitRootLogin prohibit-password (or no, once you have a sudo user)
+   - sudo systemctl restart sshd</pre></div>
+<div class="plain">3. Create a non-root sudo user (don't operate as root day-to-day):</div>
+<div class="code-wrap"><pre class="code">   adduser &lt;name&gt; &amp;&amp; usermod -aG sudo &lt;name&gt;</pre></div>
+<div class="plain">4. Update the system: sudo apt update &amp;&amp; sudo apt full-upgrade -y (Ubuntu/Debian) or dnf upgrade (AlmaLinux/Rocky)</div>
+<div class="subhead">5. Set the hostname: sudo hostnamectl set-hostname &lt;name&gt;</div>
+<div class="plain">6. Set up a firewall (ufw allow OpenSSH first so you don't lock yourself out, then ufw enable)</div>
+<div class="plain">7. Set the timezone: sudo timedatectl set-timezone &lt;Region/City&gt;</div>
+<div class="plain">8. Consider fail2ban for SSH brute-force protection: sudo apt install fail2ban</div>
+<div class="blank"></div>
+<div class="subhead">Rescue Mode / Recovery</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">If the server won't boot: Control Panel &gt; Server &gt; Actions &gt; Rescue System</span><span class="sep"> — </span><span class="desc">boots a minimal Linux environment so you can chroot in and fix configs, reset a lost password, or recover data</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">After a reboot into rescue, mount the real root partition (often /dev/sda1 or /dev/vda1) and chroot before running fixes</span></div>
+<div class="blank"></div>
+<div class="subhead">Reinstalling the OS</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Control Panel &gt; Server &gt; Reinstall</span><span class="sep"> — </span><span class="desc">wipes the disk and lets you pick a new OS image (this is destructive; snapshot/back up first if you need existing data)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Custom images can be uploaded and deployed via the DevOps tools section for repeatable setups</span></div>
+<div class="blank"></div>
+<div class="subhead">Snapshots &amp; Backups</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Snapshots are point-in-time, manually triggered, usually a few free slots depending on plan</span><span class="sep"> — </span><span class="desc">good before risky changes</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Backups (if purchased as add-on) run on a schedule and are separate from snapshots</span><span class="sep"> — </span><span class="desc">check retention window in the panel</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Snapshots/backups live on Contabo's infrastructure, not a substitute for off-site backups of critical data (consider rsync/restic to another location too)</span></div>
+<div class="blank"></div>
+<div class="subhead">Networking</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Additional IPs, reverse DNS (PTR records), and private networking (if applicable to your plan) are configured from the panel's network section</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Default firewall is OS-level (ufw/iptables/nftables)</span><span class="sep"> — </span><span class="desc">Contabo doesn't provide a cloud firewall layer the way some providers do, so harden the OS firewall yourself</span></div>
+<div class="blank"></div>
+<div class="subhead">Monitoring Resource Usage</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">htop / top            </span><span class="sep"> — </span><span class="desc">live CPU/mem usage</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">vnstat                </span><span class="sep"> — </span><span class="desc">bandwidth usage over time (install with apt, useful since Contabo plans have traffic limits)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">df -h &amp;&amp; free -h      </span><span class="sep"> — </span><span class="desc">quick disk/memory check</span></div>
+<div class="blank"></div>
+<div class="subhead">Support &amp; Account</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Tickets are handled through the control panel's support section</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Check contabo.com/en/newsroom or the panel's announcement banner for maintenance windows on your server's data center</span></div>
+<div class="blank"></div>
+<div class="plain">See also: ssh_sftp_rsync_cheatsheet.txt, ubuntu_cheatsheet.txt, systemd_cheatsheet.txt, networking_commands_cheatsheet.txt</div>
+<div class="blank"></div></div></section>
+<section class="filesec" id="file-claude_cs" data-cat="CLAUDE CODE"><header class="filehead"><span class="tag">ENTRY 15</span><h2>Claude Code — Cheat Sheet</h2></header><div class="filebody"><div class="subhead">Core Workflow</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Run claude in a project directory</span><span class="sep"> — </span><span class="desc">it reads files as needed, no manual context-loading required.</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Describe tasks naturally ("add Google OAuth to the login flow"); Claude explores, asks clarifying questions, plans, and implements.</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">First session starts in Manual mode (approves each action); Pro/Max/Team plans default to Auto mode after that (a classifier reviews actions, only blocking risky things like scope escalation).</span></div>
+<div class="blank"></div>
+<div class="subhead">Essential Slash Commands</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/help</span><span class="sep"> — </span><span class="desc">list commands</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/clear</span><span class="sep"> — </span><span class="desc">reset context between unrelated tasks</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/config</span><span class="sep"> — </span><span class="desc">settings</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/init</span><span class="sep"> — </span><span class="desc">generate a starter CLAUDE.md</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/permissions</span><span class="sep"> — </span><span class="desc">allowlist trusted tools/commands to cut down prompts</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/code-review [--fix]</span><span class="sep"> — </span><span class="desc">review the diff for bugs/cleanups</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">/resume</span><span class="sep"> — </span><span class="desc">pick up a previous conversation</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Plan mode (Shift+Tab to toggle)</span><span class="sep"> — </span><span class="desc">explore/design without making changes</span></div>
+<div class="blank"></div>
+<div class="subhead">Best Practices</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Give Claude something to verify</span><span class="sep"> — </span><span class="desc">a test, build, linter, or screenshot to check against, so it can iterate instead of just declaring done.</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Explore → plan → code</span><span class="sep"> — </span><span class="desc">use plan mode to separate research from implementation.</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Be specific</span><span class="sep"> — </span><span class="desc">reference files, constraints, and existing patterns rather than vague asks.</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Keep CLAUDE.md lean</span><span class="sep"> — </span><span class="desc">only things Claude can't infer by reading code (build commands, style rules that diverge from defaults, gotchas).</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Manage context</span><span class="sep"> — </span><span class="desc">/clear between unrelated tasks, use subagents for research so it doesn't clutter your main thread.</span></div>
+<div class="blank"></div>
+<div class="subhead">Permissions &amp; Modes</div>
+<div class="blank"></div>
+<div class="plain">Toggle with Shift+Tab: Manual (asks every time), Auto (classifier-gated), Plan (read-only exploration). Layer /permissions on top to pre-approve specific commands you trust.</div>
+<div class="blank"></div>
+<div class="subhead">Worth Knowing</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Hooks</span><span class="sep"> — </span><span class="desc">run scripts at specific events (e.g., lint after every edit), configured in .claude/settings.json</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Skills</span><span class="sep"> — </span><span class="desc">reusable workflows for repeatable/domain-specific tasks</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">MCP servers</span><span class="sep"> — </span><span class="desc">connect external tools (claude mcp add)</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="cmd">Subagents</span><span class="sep"> — </span><span class="desc">offload research/review into a separate context</span></div>
+<div class="blank"></div>
+<div class="subhead">For Larger Tasks</div>
+<div class="blank"></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Run non-interactive (claude -p "prompt") for scripts/CI</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Parallelize across multiple terminal sessions</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">For complex features, ask Claude to interview you first to nail down a spec before coding</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Have a fresh subagent do an adversarial review of the diff afterward</span></div>
+<div class="blank"></div>
+<div class="plain">Good starting sequence: /init → /config → /permissions, then just start working — you'll develop intuition over time for when to plan vs. dive in.</div>
+<div class="blank"></div>
+<div class="plain">One caveat: a couple of command names in there (e.g. /plan, /batch, /verify, /rename, /memory) I can't fully vouch for — worth confirming with /help in your actual session, since docs/CLI surface can drift.</div>
+<div class="blank"></div></div></section>
+<section class="filesec" id="file-claude_bp" data-cat="CLAUDE CODE"><header class="filehead"><span class="tag">ENTRY 16</span><h2>Claude Code — Best Practices</h2></header><div class="filebody"><div class="subhead">1. Decide the basics before opening Claude</div>
+<div class="blank"></div>
+<div class="plain">Have rough answers to these — Claude can help you decide, but knowing your own constraints</div>
+<div class="plain">first speeds things up a lot:</div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Stack: static site generator (Astro, Hugo, Next.js, 11ty) vs. full framework vs. plain</span></div>
+<div class="plain">HTML/CSS? For a tech blog, a static site generator is usually the right call — fast, simple</div>
+<div class="plain">hosting, good for markdown content.</div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Hosting: Vercel/Netlify/GitHub Pages/self-hosted? This affects some setup choices.</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Content workflow: Markdown files in the repo, or a CMS?</span></div>
+<div class="blank"></div>
+<div class="plain">If you're not sure, that's fine — just tell Claude your general goal and let it propose</div>
+<div class="plain">options rather than defaulting silently.</div>
+<div class="blank"></div>
+<div class="subhead">2. Set up the folder and git</div>
+<div class="blank"></div>
+<div class="plain">mkdir tech-blog &amp;&amp; cd tech-blog</div>
+<div class="plain">git init</div>
+<div class="plain">Do this yourself first (or ask Claude to). A git repo from the start means every change is</div>
+<div class="plain">reversible and diffable — important once Claude starts making edits.</div>
+<div class="blank"></div>
+<div class="subhead">3. Open Claude Code and scaffold</div>
+<div class="blank"></div>
+<div class="plain">claude</div>
+<div class="plain">Then describe the goal in plain language: "I want to build a tech blog. I'm thinking</div>
+<div class="plain">[Astro/Next/etc], markdown posts, deployed to [Vercel/etc]. Help me scaffold this."</div>
+<div class="blank"></div>
+<div class="plain">For a project starting from nothing, it's often worth having Claude interview you first:</div>
+<div class="plain">ask it to use AskUserQuestion to nail down things like styling approach (Tailwind? plain</div>
+<div class="plain">CSS?), whether you want dark mode, RSS feed, tags/categories, comments, search, etc. This</div>
+<div class="plain">front-loads decisions instead of Claude guessing and you correcting later.</div>
+<div class="blank"></div>
+<div class="subhead">4. Let it scaffold, then run /init</div>
+<div class="blank"></div>
+<div class="plain">Once there's actual code/structure in the folder (even just a starter template),</div>
+<div class="plain">run /init to generate CLAUDE.md. Doing it after scaffolding (not before, on an empty folder)</div>
+<div class="plain">means it captures real conventions — file structure, commands like npm run dev, naming</div>
+<div class="plain">patterns — instead of nothing.</div>
+<div class="blank"></div>
+<div class="subhead">Then hand-add a few things /init can't infer:</div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Your writing voice/tone preferences for post content, if Claude will help draft posts</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Any hard rules (e.g., "always run npm run build before considering a change done")</span></div>
+<div class="bullet"><span class="mark">▸</span><span class="btext">Deployment specifics</span></div>
+<div class="blank"></div>
+<div class="subhead">5. Use plan mode for the first big structural pass</div>
+<div class="blank"></div>
+<div class="plain">For the initial architecture (routing, layout, content collections config), toggle</div>
+<div class="plain">plan mode (Shift+Tab) so Claude proposes an approach before writing files — cheap way</div>
+<div class="plain">to catch a wrong direction (e.g., wrong framework idiom) before it's</div>
+<div class="plain">baked into a dozen files.</div>
+<div class="blank"></div>
+<div class="subhead">6. Iterate in small loops after that</div>
+<div class="blank"></div>
+<div class="plain">Once the skeleton exists, day-to-day work (new posts, components, styling tweaks) doesn't</div>
+<div class="plain">need plan mode — just describe the change and let it run, checking the dev server (/run</div>
+<div class="plain">or just asking it to start the dev server) as you go.</div>
+<div class="blank"></div>
+<div class="subhead">7. Commit as you go</div>
+<div class="blank"></div>
+<div class="plain">Ask Claude to commit at natural checkpoints (scaffold done, first post live, styling</div>
+<div class="plain">pass done) rather than one giant commit — easier to roll back a bad iteration.</div>
+<div class="blank"></div>
+<div class="plain">TL;DR order of operations: decide stack/hosting → git init → describe goal, let</div>
+<div class="plain">Claude interview you if scope is fuzzy → scaffold → /init → hand-edit CLAUDE.md</div>
+<div class="plain">with a few extras → plan mode for architecture → normal mode for iteration → commit</div>
+<div class="plain">along the way.-</div>
+<div class="blank"></div></div></section>

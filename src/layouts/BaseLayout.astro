@@ -13,6 +13,10 @@ interface Props {
     modifiedTime?: string;
     tags: string[];
   };
+  /** Widen main beyond the default max-w-3xl reading column, for
+   * tool/dashboard-style pages (e.g. the archive) that need more than a
+   * single prose column. */
+  fullBleed?: boolean;
 }
 
 const {
@@ -20,6 +24,7 @@ const {
   description = SITE_DESCRIPTION,
   ogImage,
   article,
+  fullBleed = false,
 } = Astro.props;
 
 const pageTitle = title ? `${title} | ${SITE_TITLE}` : SITE_TITLE;
@@ -83,7 +88,10 @@ const resolvedOgImage = ogImage
     <Header />
     <main
       data-pagefind-body
-      class="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6"
+      class:list={[
+        "mx-auto w-full flex-1 px-4 py-10 sm:px-6",
+        fullBleed ? "max-w-6xl" : "max-w-3xl",
+      ]}
     >
       <slot />
     </main>
