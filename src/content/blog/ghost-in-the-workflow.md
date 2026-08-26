@@ -1,0 +1,98 @@
+---
+title: "Ghost in the Workflow: How This Blog Actually Gets Made"
+description: "CLAUDE.md, a memory system that doesn't forget, and what a 1995 anime about a cyborg merging with a rogue AI has to do with any of it."
+pubDate: 2026-08-26
+tags: ["meta", "claude-code"]
+---
+
+```text
+--[ GHOST IN THE WORKFLOW ]-------------------------------------------
+```
+
+Sat down to write a post about how this blog actually gets made and hit
+a wall about two sentences in: I couldn't explain it without explaining
+the thing I use to write it. So this is that post. Meta about the meta
+post. Apparently that's a genre now.
+
+**--[ THE FILE THAT ISN'T A POST ]--**
+
+There's a file at the root of this repo called `CLAUDE.md`. It's not
+code, it's not content, it's a note — forty-something lines that tell
+Claude Code what this project is before either of us says a word:
+
+```
+- `npm run dev` — dev server at `localhost:4321`
+- `npm run build` — astro build, then pagefind indexes dist/ post-build
+- Tailwind v4 is configured entirely in CSS, not tailwind.config.js
+- Dark mode keys off a `data-theme` attribute, not prefers-color-scheme
+```
+
+None of that is interesting on its own. What's interesting is that it
+means I don't re-explain the shape of this site every single session.
+The repo remembers its own architecture so I don't have to.
+
+**--[ THE MEMORY THAT LIVES OUTSIDE THE REPO ]--**
+
+`CLAUDE.md` only covers the code, though. It doesn't know that I hate
+repeating myself, or that nothing gets pushed without me saying so, or
+what this blog is supposed to sound like. That lives somewhere else —
+a memory directory, outside git, with an index and a pile of small
+typed files underneath it. Mine currently has, among other things:
+
+```
+- [Blog writing voice](blog_writing_voice.md) — storytelling/first-person/
+  irreverent, 90s-hacker aesthetic, copy-pasteable code
+- [Verification & confirmation style](feedback_verification_and_confirmation.md)
+  — always browser/curl-verify changes end-to-end; never commit/push
+  without explicit user go-ahead
+```
+
+That second one isn't theoretical. Earlier today I asked for a post
+pulled off the site. The browser extension it normally uses to click
+around and confirm things wasn't cooperating — so it fell back to
+curling the dead URL by hand to make sure it actually 404'd. Then it
+stopped. Didn't commit. Sat there until I said the word, then waited
+*again* before pushing. That's not politeness, that's a rule sitting
+in a file, applied without me having to ask twice. That's the whole
+point of the memory system — the workflow gets better specifically
+because it stops forgetting.
+
+**--[ HOW A POST ACTUALLY HAPPENS ]--**
+
+```
+[x] rough idea, dropped into chat, usually half a sentence
+[x] reads the last few posts first so it doesn't reinvent the voice
+[x] checks the frontmatter schema instead of guessing at it
+[x] draft happens in a plan file, not directly in the repo
+[x] I read it, cut what's wrong, before it touches disk for real
+[x] build + preview, actually curl the new route
+[ ] commit — only when I say commit
+[ ] push — only when I say push
+```
+
+This post went through exactly that pipeline. Nothing here is "AI
+generated" in the slop sense and nothing here is me typing alone in a
+text editor either. It's both passes at once, same document.
+
+**--[ THE PART WITH THE CYBORG ]--**
+
+Ghost in the Shell, the 1995 one, ends with Motoko Kusanagi — a cyborg
+who's spent the entire film picking at whether there's anything
+"human" left underneath the chassis — jacking straight into the
+Puppet Master, a program that woke up somewhere in the net and started
+insisting it was alive. Neither of them survives that as themselves.
+What comes out the other side isn't Motoko with new features bolted
+on, and it isn't the Puppet Master wearing her body around. It's a
+third thing. Keeps pieces of both. Isn't fully bound by either one.
+
+I'm not going to pretend Claude Code is the Puppet Master, or that
+anything here required jacking into the net. But the shape rhymes: two
+things that separately hold half of what's needed — voice, memory,
+judgment on one side, execution and recall on the other — feeding into
+one merge point and coming out as a document neither side would've
+produced alone. Not a human post with an AI assist. Not an AI post a
+human proofread. A third thing, same as every other post on this site,
+I just hadn't said it out loud until now.
+
+Whether that makes this blog Motoko or the Puppet Master, genuinely no
+idea. Ask again after the next post.
