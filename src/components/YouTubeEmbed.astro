@@ -1,0 +1,24 @@
+---
+interface Props {
+  /** The video ID from the YouTube URL (the part after `v=` or after `youtu.be/`). */
+  id: string;
+  /** Accessible title for the embedded player — describe what the video shows. */
+  title: string;
+  /** Start playback at this many seconds in. */
+  start?: number;
+}
+
+const { id, title, start } = Astro.props;
+const src = `https://www.youtube-nocookie.com/embed/${id}${start ? `?start=${start}` : ""}`;
+---
+
+<div class="relative aspect-video w-full overflow-hidden border border-term-border">
+  <iframe
+    class="absolute inset-0 h-full w-full"
+    src={src}
+    title={title}
+    loading="lazy"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowfullscreen
+  ></iframe>
+</div>

@@ -138,3 +138,7 @@ body {
 .prose :where(blockquote):not(:where([class~="not-prose"] *)) {
   @apply border-l-[var(--color-term-border-strong)] text-term-fg-dim;
 }
+
+.prose :where(img):not(:where([class~="not-prose"] *)) {
+  @apply rounded-none border border-term-border;
+}
