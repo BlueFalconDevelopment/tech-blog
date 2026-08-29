@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import PostCard from "../../components/PostCard.astro";
+import YouTubeEmbed from "../../components/YouTubeEmbed.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 
 const posts = (await getCollection("blog", ({ data }) => !data.draft)).sort(
@@ -12,6 +13,9 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft)).sort(
   <h1 class="mb-8 text-3xl font-bold tracking-tight text-term-fg-bright sm:text-4xl">
     All posts
   </h1>
+  <div class="mb-8 max-w-2xl">
+    <YouTubeEmbed id="Y5w4JlI3SAY" title="Lava Chicken - Minecraft Music Disc - Hyper Potions" />
+  </div>
   <div class="flex flex-col gap-4">
     {posts.map((post) => <PostCard post={post} />)}
   </div>
