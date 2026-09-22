@@ -1,0 +1,921 @@
+---
+title: "Bare Metal Deathmatch: Teaching Myself x86-64 Assembly From Scratch"
+description: "No C, no engine, no training wheels — NASM, raw syscalls, and SDL2 called straight from assembly, building up to an 8v8 battle sim. Five real bugs, two of which were quietly rigging who won."
+pubDate: 2026-09-21
+tags: ["assembly", "low-level", "gamedev"]
+---
+
+import YouTubeEmbed from "../../components/YouTubeEmbed.astro";
+
+<YouTubeEmbed id="Uq1jJLZNHlI" title="Doom Crossing: Eternal Horizons" />
+
+```text
+--[ WHY DO THIS TO MYSELF ]----------------------------------------------
+```
+
+Chris Sawyer wrote 99% of RollerCoaster Tycoon in hand-coded x86 assembly,
+with just enough C glued on to talk to Windows and DirectX. That fact has
+lived in my head rent-free for years. I've never written a single line of
+asm in my life, so I decided to chase the same idea at a much smaller
+scale: start from a totally bare Ubuntu box with no toolchain installed,
+learn x86-64 from actual zero, and build up to a capstone I'd actually
+want to watch run — a two-team deathmatch, soldiers with knives, pistols,
+and shotguns, fighting until one side has nobody left standing.
+
+The stack ended up being:
+
+- **NASM** — the assembler
+- **System V AMD64 ABI** — the calling convention (args in `rdi, rsi, rdx,
+  rcx, r8, r9`) — this is the whole reason calling SDL2 from hand-written
+  asm is even possible
+- **gcc** — used *only* as a linker driver, to get a working C-runtime
+  entry point and dynamic linking, without writing one line of C myself
+- **gdb** — technically the debugger, though for a sim running at 60
+  ticks/second, plain `write()` syscalls redirected to a file ended up
+  earning their keep more often than gdb did. More on that later.
+- **SDL2** — window, input, raw pixel blitting, called directly from
+  assembly
+
+Repo: https://github.com/BlueFalconDevelopment/assembly-simulation
+
+This covers one long session: registers-and-syscalls fundamentals →
+opening an SDL2 window → drawing raw pixels by hand → animation → input →
+the capstone, an 8-vs-8 battle sim with weapon pickups, obstacles, and
+line-of-sight. There were real bugs along the way, several of them nasty,
+and those are the parts actually worth reading.
+
+```text
+--[ STAGE 0 :: TOOLCHAIN ]------------------------------------------------
+```
+
+Straightforward apt install, plus one smoke test to prove the whole chain
+— assemble, link, run, debug — actually works before trusting it for
+anything real:
+
+```bash
+sudo apt update
+sudo apt install -y nasm gdb build-essential libsdl2-dev
+```
+
+Versions on this box: NASM 3.01, GDB 17.1, GCC 15.2.0, SDL2 2.32.10.
+
+The smoke test was a pure-syscall "hello world" — no libc, no gcc, just
+`nasm` and `ld` directly:
+
+```nasm
+section .data
+    msg     db "toolchain works", 10
+    msg_len equ $ - msg
+
+section .text
+    global _start
+
+_start:
+    mov rax, 1          ; syscall number: write
+    mov rdi, 1          ; fd: stdout
+    mov rsi, msg        ; buffer
+    mov rdx, msg_len    ; length
+    syscall
+
+    mov rax, 60         ; syscall number: exit
+    mov rdi, 0
+    syscall
+```
+
+```bash
+nasm -f elf64 -g -F dwarf hello.asm -o hello.o
+ld hello.o -o hello
+./hello
+```
+
+Then a quick gdb pass just to confirm debug symbols work end to end:
+
+```bash
+gdb -q -batch -ex "break _start" -ex "run" -ex "info registers rax rdi" -ex "continue" ./hello
+```
+
+Worked first try, which never happens again for the rest of this post.
+
+```text
+--[ STAGE 1 :: REGISTERS, STACK, JUMPS, CALLING CONVENTION ]-------------
+```
+
+Four small, heavily-commented programs, each one isolating a concept
+before I let myself combine them:
+
+1. **Registers / mov / arithmetic** — `mov`, `add`/`sub`/`imul`, `idiv`.
+   `idiv` divides the 128-bit value sitting in `rdx:rax` by its operand,
+   so if you forget to sign-extend `rax` into `rdx` first (that's what
+   `cqo` is for), you're dividing by whatever garbage happened to be in
+   `rdx`. Found that one the hard way.
+2. **The stack** — `push`/`pop`, and manual scratch space via
+   `sub rsp, N` / `add rsp, N`.
+3. **`cmp` and jumps** — `cmp` computes `a - b` and throws the result
+   away, keeping only the flags; every conditional jump after it is just
+   reading those flags back. Paired this with a hand-rolled
+   integer-to-decimal-string conversion (build the digits back-to-front
+   by repeatedly dividing by 10) so I could actually print a computed
+   result via `write()` instead of trusting gdb to tell me I wasn't lying
+   to myself.
+4. **The System V calling convention** — first six integer/pointer args
+   in `rdi, rsi, rdx, rcx, r8, r9`, return value in `rax`, caller-saved
+   vs. callee-saved registers, and the 16-byte stack alignment rule: at
+   the instant a `call` executes, `rsp` must be 16-byte aligned. The
+   kernel guarantees this at process start, and every `push` without a
+   matching `pop` before your next `call` flips it. Demonstrated with a
+   recursive `factorial` and a proper `rbp`-based `print_uint` with its
+   own local stack frame.
+
+That alignment rule ends up mattering for the entire rest of the project
+— SDL2 and libc are ordinary C functions that assume it, and getting it
+wrong doesn't fail loudly. It corrupts something subtly, later, somewhere
+else, which is the worst possible way for a bug to introduce itself.
+
+```text
+--[ STAGE 2 :: OPENING A WINDOW ]-----------------------------------------
+```
+
+This is where the whole project's entry-point strategy changes for good.
+Stage 0/1 used `global _start` and linked with plain `ld`, making raw
+syscalls directly — fine, because those programs need nothing from libc.
+SDL2 depends on libc, pthreads, and dynamic-linking machinery that isn't
+worth hand-rolling for a learning project. So from here on:
+
+- `global main` instead of `global _start`
+- link with `gcc`, not `ld` — gcc supplies the real C runtime startup
+  (`crt1.o`), which does real setup (TLS, etc.) before `main` ever runs
+- every SDL function declared `extern` and called with the exact System V
+  convention from Stage 1
+
+```nasm
+extern SDL_Init
+extern SDL_CreateWindow
+extern SDL_CreateRenderer
+
+SDL_INIT_VIDEO           equ 0x00000020
+SDL_WINDOWPOS_UNDEFINED  equ 0x1FFF0000
+SDL_WINDOW_SHOWN         equ 0x00000004
+SDL_RENDERER_ACCELERATED equ 0x00000002
+
+main:
+    push rbp
+    mov rbp, rsp
+    push r12
+    push r13
+
+    mov edi, SDL_INIT_VIDEO
+    call SDL_Init
+
+    lea rdi, [title]
+    mov esi, SDL_WINDOWPOS_UNDEFINED
+    mov edx, SDL_WINDOWPOS_UNDEFINED
+    mov ecx, 800
+    mov r8d, 600
+    mov r9d, SDL_WINDOW_SHOWN
+    call SDL_CreateWindow
+    mov r12, rax                ; save SDL_Window*
+
+    mov rdi, r12
+    mov esi, -1
+    mov edx, SDL_RENDERER_ACCELERATED
+    call SDL_CreateRenderer
+    mov r13, rax                ; save SDL_Renderer*
+```
+
+**The PIE relocation gotcha.** Built it the naive way:
+
+```bash
+nasm -f elf64 -g -F dwarf window.asm -o window.o
+gcc window.o -o window -lSDL2
+```
+
+and got slapped with:
+
+```text
+relocation R_X86_64_PC32 against symbol `SDL_Init' can not be used when making a PIE object; recompile with -fPIE
+```
+
+Modern gcc defaults to building a Position-Independent Executable, which
+routes every external-symbol reference through the GOT/PLT using a
+different relocation form than a plain `call SDL_Init`. Easiest fix:
+stop asking for a PIE at all.
+
+```bash
+gcc -no-pie window.o -o window -lSDL2
+```
+
+That one line went into every Makefile from here to the end of the
+project.
+
+**Frame timing.** The naive main loop — poll events, clear, render,
+present, repeat, no delay — pegs a CPU core near 100%. Fixed with
+`SDL_GetTicks`/`SDL_Delay`:
+
+```nasm
+.loop:
+    call SDL_GetTicks
+    mov ebx, eax                  ; frame start time
+
+    ; poll events, render...
+
+    call SDL_GetTicks
+    sub eax, ebx                  ; elapsed ms this frame
+    cmp eax, FRAME_BUDGET_MS      ; 16 -- targets ~60fps
+    jge .loop                     ; already over budget, skip the delay
+    mov ecx, FRAME_BUDGET_MS
+    sub ecx, eax
+    mov edi, ecx
+    call SDL_Delay
+    jmp .loop
+```
+
+Checked it with `top` side by side: unpaced sat at 80-100% CPU, paced sat
+at 1-6%, for visually identical output. Satisfying fix.
+
+```text
+--[ STAGE 3 :: DRAWING A SCENE BY HAND ]----------------------------------
+```
+
+This is where I stopped leaning on `SDL_RenderClear`/`SDL_SetRenderDraw
+Color` and started writing raw pixels myself. A streaming `SDL_Texture`,
+locked each frame, hands you direct read/write access to a block of
+memory. Each pixel is 4 bytes; each row is `pitch` bytes — not
+necessarily `width * 4`, because a driver is allowed to pad rows, so the
+code always uses whatever pitch SDL actually reports for that frame
+(confirmed via gdb to be exactly `800 * 4 = 3200` on this machine and
+driver, but never assumed to stay that way):
+
+```text
+address of pixel (col, row) = base + row * pitch + col * 4
+```
+
+To prove that offset math was actually right — not just "looks like a
+flat color" — the first real test filled the buffer with a gradient
+where red cycled with column and green cycled with row. If row and col
+were ever swapped, the image would visibly rotate 90 degrees. A bug you
+can *see* instead of merely suspect is a good bug to engineer for
+yourself early.
+
+**The color-packing trick.** `SDL_PIXELFORMAT_RGBA32` guarantees
+in-memory byte order R, G, B, A regardless of CPU endianness. Since a
+little-endian 32-bit store writes its low byte to the lowest address:
+
+```text
+value = R | (G << 8) | (B << 16) | (A << 24)
+```
+
+Written as a hex literal `0xAABBGGRR`, the digit pairs read left to
+right as A, B, G, R — which is why color constants throughout the whole
+project look "backwards" from RGBA order at a glance:
+
+```nasm
+; R=100 G=170 B=255 A=255 (light blue sky)
+COLOR_SKY equ 0xFFFFAA64
+```
+
+I didn't want to guess the exact numeric value of
+`SDL_PIXELFORMAT_RGBA32`, so I compiled a two-line throwaway C probe
+against the real headers instead of trusting whatever number I half
+remembered:
+
+```c
+#include <SDL2/SDL.h>
+#include <stdio.h>
+int main() {
+    printf("SDL_PIXELFORMAT_RGBA32 = 0x%08X\n", SDL_PIXELFORMAT_RGBA32);
+    return 0;
+}
+```
+
+```bash
+gcc /tmp/pf.c -o /tmp/pf $(pkg-config --cflags --libs sdl2) && /tmp/pf
+# SDL_PIXELFORMAT_RGBA32 = 0x16762004
+```
+
+That "don't guess, compile a probe against the real header" move got
+reused constantly for the rest of the project — scancode constants,
+struct field offsets, all of it. Way cheaper than debugging a wrong
+hardcoded constant an hour downstream.
+
+**`set_pixel`, `fill_rect`, and NASM's `struc`.** A `FrameBuffer` struct
+(pointer, pitch, width, height) bundles what every drawing function
+needs, using NASM's `struc`/`endstruc` — there's no real struct type at
+the machine level, just a pointer and a promise to interpret the bytes
+at fixed offsets consistently:
+
+```nasm
+struc FrameBuffer
+    .pixels: resq 1
+    .pitch:  resd 1
+    .w:      resd 1
+    .h:      resd 1
+endstruc
+
+; void set_pixel(FrameBuffer* fb: rdi, int x: esi, int y: edx, u32 color: ecx)
+set_pixel:
+    cmp esi, 0
+    jl .done
+    cmp esi, [rdi + FrameBuffer.w]
+    jge .done
+    cmp edx, 0
+    jl .done
+    cmp edx, [rdi + FrameBuffer.h]
+    jge .done
+    mov eax, edx
+    imul eax, [rdi + FrameBuffer.pitch]
+    lea eax, [eax + esi*4]          ; offset = y*pitch + x*4
+    mov r10, [rdi + FrameBuffer.pixels]
+    mov dword [r10 + rax], ecx
+.done:
+    ret
+```
+
+`fill_rect` is the same idea, clipping against the far/bottom edges —
+and it quietly assumes `x >= 0` and `y >= 0` going in, only clipping the
+far side. Wrote that assumption down as a comment at the time and
+promptly forgot about it. It comes back to bite in Stage 6b, bug #1.
+
+**`draw_line` — the payoff that pays off twice.** Bresenham's line
+algorithm, integer-only, walking from one point to another deciding
+whether to step in x, y, or both:
+
+```nasm
+.plot_loop:
+    mov rdi, [rbp + L_FB]
+    mov esi, [rbp + L_X0]
+    mov edx, [rbp + L_Y0]
+    mov ecx, [rbp + L_COLOR]
+    call set_pixel
+
+    mov eax, [rbp + L_X0]
+    cmp eax, [rbp + L_X1]
+    jne .continue_loop
+    mov eax, [rbp + L_Y0]
+    cmp eax, [rbp + L_Y1]
+    je .plot_done
+.continue_loop:
+    mov eax, [rbp + L_ERR]
+    add eax, eax                    ; e2 = 2*err
+
+    cmp eax, [rbp + L_DY]
+    jl .skip_x
+    ; err += dy; x0 += sx
+.skip_x:
+    cmp eax, [rbp + L_DX]
+    jg .skip_y
+    ; err += dx; y0 += sy
+.skip_y:
+    jmp .plot_loop
+```
+
+Left a comment in the code at the time saying this line-stepping logic
+would get reused three stages later for line-of-sight checks. It did,
+unchanged in algorithm — see Stage 6b.
+
+This function also needs about 9 live values (both endpoints, deltas,
+sign, error term, color) to survive repeated calls to `set_pixel`.
+Rather than fight for callee-saved registers, it gets a proper
+`rbp`-based stack frame with one named local per value (`L_X0 equ -16`,
+etc.). Memory survives a `call` for free — a much simpler mental model
+than juggling which registers a callee is allowed to clobber.
+
+```text
+--[ STAGE 4 :: ANIMATION AND DOUBLE BUFFERING ]---------------------------
+```
+
+Two programs here: a bouncing ball whose position/velocity live in
+`.data` and get updated once per tick before drawing (state *is* the
+simulation, rendering is just a side effect of it), then an upgrade to a
+real back buffer.
+
+The upgrade matters because drawing straight into the locked texture, the
+way Stage 3 did, tangles your drawing logic up with lock/unlock timing
+and an unpredictable pitch. Fix: a persistent CPU-owned buffer in `.bss`,
+described by a `FrameBuffer` struct that's **compile-time initialized**
+via NASM's `istruc`/`at`/`iend`:
+
+```nasm
+section .data
+    back_fb:
+    istruc FrameBuffer
+        at FrameBuffer.pixels, dq back_buffer
+        at FrameBuffer.pitch,  dd OUR_PITCH
+        at FrameBuffer.w,      dd SCREEN_W
+        at FrameBuffer.h,      dd SCREEN_H
+    iend
+
+section .bss
+    back_buffer resb SCREEN_W * SCREEN_H * 4
+```
+
+Once a frame, after the whole scene is drawn into that stable buffer, it
+gets blitted into the locked texture row by row using `rep movsb` — an
+x86 string instruction that copies `rcx` bytes from `[rsi]` to `[rdi]`,
+advancing both pointers itself:
+
+```nasm
+.blit_row_loop:
+    cmp r15d, SCREEN_H
+    jge .blit_done
+
+    lea rsi, [back_buffer]
+    mov eax, r15d
+    imul eax, OUR_PITCH
+    add rsi, rax
+
+    mov rdi, r10                  ; texture pixel base
+    mov eax, r15d
+    imul eax, r11d                ; texture's REAL pitch (may differ from ours)
+    add rdi, rax
+
+    mov ecx, SCREEN_W * 4
+    cld
+    rep movsb
+
+    inc r15d
+    jmp .blit_row_loop
+```
+
+Row-by-row, not one giant memcpy, because my back buffer's stride is
+fixed at assembly time but the texture's pitch gets decided by the
+driver at lock time and might not match.
+
+**Caught bug, before it shipped:** while writing this, the row counter
+used `r15` without pushing/popping it in the prologue — silently
+breaking the callee-saved convention I'd been consistent about for the
+whole project up to that point. Caught it during verification, before
+committing. A good reminder that your own established conventions are
+exactly the kind of thing that slips under time pressure.
+
+```text
+--[ STAGE 5 :: INPUT ]----------------------------------------------------
+```
+
+Two mechanisms, kept deliberately separate:
+
+- **`SDL_GetKeyboardState(NULL)`** — a pointer to a live-updating array
+  of `Uint8`, one per key, indexed by `SDL_SCANCODE_*`. The pointer is
+  stable for the whole program: call it once, keep reading through it.
+  Used for continuous movement (arrow keys).
+- **`SDL_PollEvent`** — a queue you drain, one discrete event at a time,
+  every frame. Used for one-off things: the window's close button, mouse
+  clicks.
+
+```nasm
+xor edi, edi
+call SDL_GetKeyboardState
+mov r15, rax                       ; called ONCE, outside the loop
+
+; each frame:
+cmp byte [r15 + SDL_SCANCODE_LEFT], 0
+je .no_left
+sub dword [player_x], MOVE_SPEED
+.no_left:
+```
+
+Mixing these up — polling for held-key state, or snapshotting for a
+one-off click — is a real category of bug, not just a style choice.
+
+Left-click-to-place used the event-queue path, reading the mouse
+button's payload out of the same buffer once
+`event.type == SDL_MOUSEBUTTONDOWN` — field offsets looked up with the
+same "compile a C probe" technique from Stage 3, not guessed:
+
+```c
+printf("offsetof button = %zu\n", offsetof(SDL_MouseButtonEvent, button)); // 16
+printf("offsetof x      = %zu\n", offsetof(SDL_MouseButtonEvent, x));      // 20
+printf("offsetof y      = %zu\n", offsetof(SDL_MouseButtonEvent, y));      // 24
+```
+
+Each click appended a permanent obstacle-marker to a growing `.bss`
+array — my first taste of "input that mutates persistent simulation
+state," not just moving something that was already there. Direct
+rehearsal for the capstone's weapon pickups.
+
+```text
+--[ STAGE 6A :: THE CAPSTONE CORE LOOP ]----------------------------------
+```
+
+This is where the project shifts from "one object" to "an array of
+structs, looped over." A `Soldier` struct:
+
+```nasm
+struc Soldier
+    .x:        resd 1
+    .y:        resd 1
+    .health:   resd 1
+    .team:     resd 1
+    .weapon:   resd 1      ; 0=knife 1=pistol 2=shotgun
+    .state:    resd 1
+    .target:   resd 1
+    .cooldown: resd 1
+endstruc
+```
+
+Spawned two lines of them, 8 per team, each drawn as a small colored
+square. `find_nearest_enemy` scans the opposing team, ranking candidates
+by **squared distance** — `dx*dx + dy*dy` orders candidates exactly as
+well as true distance would, without ever computing a square root:
+
+```nasm
+mov eax, [r10 + Soldier.x]
+sub eax, [rbp + FNE_MY_X]
+imul eax, eax
+mov ecx, eax
+
+mov eax, [r10 + Soldier.y]
+sub eax, [rbp + FNE_MY_Y]
+imul eax, eax
+add ecx, eax                       ; ecx = dist_sq
+
+cmp ecx, [rbp + FNE_BEST_DIST]
+jge .scan_next                     ; strictly smaller only
+mov [rbp + FNE_BEST_DIST], ecx
+```
+
+Combat pulled in `rand()`/`srand()` from libc — same pattern as SDL, an
+`extern` and the real function signature, no headers involved — plus an
+attack-cooldown field (without it, two soldiers in range resolve an
+entire fight inside a single 1/60-second frame) and a win check that
+freezes the sim and prints the result with a raw `write()` syscall.
+
+**Bug hunt #1: the "team 0 always wins" mystery.** Ran the combat sim
+once, looked fine. Ran it a dozen times in a row: **team 0 won 11 of
+12 games.** Not a great sign for a simulation I'd just told myself was
+symmetric.
+
+The cause: soldiers were always processed in fixed loop order — team 0,
+indices 0-7, before team 1, indices 8-15 — every single tick. When two
+soldiers were mutually in attack range on the same tick, whoever's turn
+came first in the loop struck first. If that killed its target, the
+target's own turn later in that *same* tick never happened, because the
+dead-check at the top of the loop skipped it. Team 0 always went first,
+so team 0 always got the first strike in every mutual engagement, for
+the entire fight.
+
+First fix attempt: alternate which end of the soldier array gets
+processed first, toggled once per tick.
+
+```nasm
+xor dword [pass_reverse], 1     ; flip for next tick
+```
+
+This made things *worse*. Team 1 then won 9 of 10. Took a minute to see
+why: `KNIFE_COOLDOWN_TICKS` is 30, an even number, so a soldier's attack
+always lands back on the same tick parity it started on, forever (30 mod
+2 == 0). A period-2 alternation *resonates* with any other even period in
+the sim instead of averaging it out — it just swapped which fixed
+parity, and therefore which team, got permanently favored. A fix that
+just relocates the bias isn't a fix.
+
+The actual fix: pick the direction with `rand()` once per tick instead
+of a deterministic toggle.
+
+```nasm
+call rand
+and eax, 1
+mov [pass_reverse], eax
+```
+
+A random choice has no period, so it can't resonate with anything.
+Verified with a fresh 12-game batch afterward: 4 wins for team 0, 8 for
+team 1 — well within normal variance for an actually fair fight.
+
+The lesson, worth stating plainly: a consistent, lopsided outcome from a
+"random" simulation is a signal to go looking for deterministic
+structure hiding behind the randomness. And single test runs can't catch
+this class of bug at all — only running the same sim repeatedly and
+looking at the *distribution* of outcomes can.
+
+**Weapon pickups.** A `Pickup` struct array, same pattern as `Soldier`,
+four fixed spawns near the field's center. An unarmed soldier compares
+squared distance to its nearest active pickup against squared distance
+to its nearest living enemy, and goes for whichever's closer:
+
+```nasm
+cmp dword [rbp + US_TARGET], -1
+je .use_pickup_goal                    ; no living enemy at all -- pickup wins
+cmp ecx, edx                           ; ecx=pickup_dist_sq, edx=enemy_dist_sq
+jl .use_pickup_goal
+jmp .use_enemy_goal
+```
+
+Once armed, combat stats depend on weapon: the pistol trades the knife's
+guaranteed close-range damage for range; the shotgun has real
+distance-based falloff, decided by the *actual* distance at the moment
+of firing, not by whichever range got it into combat in the first place:
+
+```nasm
+.atk_shotgun:
+    mov eax, [rbp + US_DIST_SQ]
+    cmp eax, SHOTGUN_CLOSE_RANGE * SHOTGUN_CLOSE_RANGE
+    jg .shotgun_far
+    mov r12d, SHOTGUN_CLOSE_DAMAGE      ; 50 dmg, 85% hit
+    mov r13d, SHOTGUN_CLOSE_HIT
+    jmp .shotgun_cd
+.shotgun_far:
+    mov r12d, SHOTGUN_FAR_DAMAGE        ; 25 dmg, 40% hit
+    mov r13d, SHOTGUN_FAR_HIT
+```
+
+An armed soldier that dies drops its weapon back onto the field at its
+death position, recycling a free `Pickup` slot — it stays in circulation
+for anyone to grab, matching the design goal.
+
+```text
+--[ STAGE 6B :: OBSTACLES AND LINE OF SIGHT ]-----------------------------
+```
+
+This stage generated more real bugs than everything before it combined —
+five of them, all found only by testing hard, not by reading the code
+and nodding. All five are a genuinely different *class* of bug, each
+one looking totally fine in a single test run, or even in isolation
+before the next piece got added.
+
+An `Obstacle` struct (x, y, w, h) placed one wall, split into two
+segments with a gap in the middle. The movement rule, straight from the
+plan: before stepping toward a goal, check whether the straight line to
+it is blocked. If clear, move directly. If blocked, don't pathfind —
+step perpendicular to the goal direction, try one side then the other,
+take whichever's clear.
+
+`line_blocked` is literally Stage 3's `draw_line`, with `set_pixel`
+swapped for a per-step obstacle check and an early return the moment any
+step is blocked:
+
+```nasm
+.step_loop:
+    mov edi, [rbp + LB_X0]
+    mov esi, [rbp + LB_Y0]
+    call is_box_blocked
+    test eax, eax
+    jz .not_blocked_here
+    mov eax, 1                    ; blocked -- return immediately
+    mov rsp, rbp
+    pop rbp
+    ret
+.not_blocked_here:
+    ; same Bresenham stepping as draw_line
+```
+
+**Bug #1: a crash from an unclamped side-step.** The perpendicular
+side-step applied a raw `add`/`sub` to `Soldier.x`/`y` with no bound of
+its own — unlike the normal clamped-toward-goal move, which never
+wanders off-screen because goals are always on-screen. With a wall
+segment sitting right at the top edge (`y=0`), a soldier repeatedly
+routed "up" around it walked into negative `y`, and `fill_rect`'s
+`row * pitch + col * 4` write only clips the *far* edge — that
+documented precondition from Stage 3, silently violated — corrupting the
+write address into unmapped memory:
+
+```text
+Thread 1 "01_obstacles" received signal SIGSEGV, Segmentation fault.
+fill_rect.col_loop () at 01_obstacles.asm:1367
+1367    mov dword [r10 + r8], r9d
+```
+
+Fix: `is_box_blocked` now also treats anything off the
+`SCREEN_W x SCREEN_H` field as blocked, since every side-step decision
+already funnels through it anyway.
+
+**Bug #2: a regression in the fair-turn-order fix.** While building this
+stage, `stage6a/04_weapons.asm` got rewritten "fresh" at one point, and
+the `call rand` / `and eax, 1` / `mov [pass_reverse], eax` line — the fix
+from bug hunt #1 — silently went missing. `pass_reverse` was still
+declared, still *read*, just never *written* again, so it stayed
+permanently 0 and team 0's original first-strike advantage walked right
+back in. Already committed and pushed to GitHub before anyone noticed.
+
+Caught by the same discipline as before: run the game repeatedly, track
+the win distribution. A 4-run batch showed 1 team-1 win out of 4 —
+plausible-looking, actually just unlucky enough to mask an 80-90%
+structural bias. A bigger batch (10, then 24 total) made it unmistakable.
+
+**Bug #3: a symmetry mismatch, amplified by the wall.** Even with
+`pass_reverse` fixed, the obstacles build was winning **24 of 24** test
+games for team 0. This one took real digging — full method below. The
+cause: soldiers spawn with left-right mirror symmetry, both teams use
+identical row y-values. The four pickups, though, got placed with
+180-degree rotational symmetry instead:
+
+```nasm
+; pickup 0: (300, 200, PISTOL)   -- west, top
+; pickup 3: (500, 400, PISTOL)   -- east, bottom  <- rotational mirror of 0, not left-right
+```
+
+That meant team 0's top rows picked up pistols, while team 1's
+*matching* top rows — same y, same distance, the soldiers who actually
+fight each other — picked up shotguns. A genuinely asymmetric matchup,
+not a coincidence. Combined with the wall's processing delay for rows
+stuck near it (regardless of team), whichever side's delayed, exposed
+rows held the longer-ranged pistol could snipe the other side's
+shotgun-wielders, who couldn't shoot back from that distance.
+
+Fix: make weapon *type* mirror left-right too, matching the spawn
+layout's actual symmetry instead of the one I'd assumed:
+
+```nasm
+mov dword [r10 + 1*Pickup_size + Pickup.type], WEAPON_PISTOL   ; was WEAPON_SHOTGUN
+mov dword [r10 + 3*Pickup_size + Pickup.type], WEAPON_SHOTGUN  ; was WEAPON_PISTOL
+```
+
+Verified with a fresh batch afterward: 10 of 21 for one obstacles-file
+run, 12 of 24 on the weapons file — both consistent with an actually
+fair fight.
+
+**Bug #4: a collision check that only tested a point.** Just from
+watching the window, soldiers could walk partway *into* wall segments
+before stopping. The collision check only tested the soldier's tracked
+`(x, y)` corner, not the `SOLDIER_SIZE x SOLDIER_SIZE` box `fill_rect`
+actually draws — so up to 15 pixels of the soldier's visible body could
+overlap an obstacle before the tracked corner itself registered as
+blocked.
+
+Fix: rewrote it as a proper box-vs-box (AABB) overlap test.
+
+```nasm
+; NOT overlapping (skip this obstacle) if the soldier box is
+; entirely left of, right of, above, or below the obstacle box
+mov eax, edi
+add eax, SOLDIER_SIZE
+cmp eax, [r10 + Obstacle.x]
+jle .iio_next                        ; soldier box entirely left of obstacle
+
+mov eax, [r10 + Obstacle.x]
+add eax, [r10 + Obstacle.w]
+cmp edi, eax
+jge .iio_next                        ; soldier box entirely right of obstacle
+; ... same for y ...
+```
+
+Verified with direct unit tests right after `spawn_obstacles` in `main`,
+printing results via a raw `write()` syscall — gdb can't cleanly call a
+hand-written asm function the way it calls a typed C function without
+extra ceremony, so this was just more reliable:
+
+```nasm
+mov edi, 355          ; box [355,371) -- overlaps obstacle starting at x=370
+mov esi, 100
+call is_box_blocked
+; expected 1, got 1
+
+mov edi, 350           ; box [350,366) -- right edge 366<=370, entirely clear
+mov esi, 100
+call is_box_blocked
+; expected 0, got 0
+```
+
+**Bug #5: a permanent 2-tick oscillation.** Adding line-of-sight for
+ranged attacks (file `02`) surfaced the nastiest bug of the session.
+File `01` alone always resolved fights in 10-20 seconds. With LOS added,
+fights started taking 90+ seconds — some never finished at all.
+
+Debugging this took several layered attempts:
+
+1. A coarse position sample — soldier's x/y once a second — showed a
+   soldier frozen at `(286, 0)` for 12+ seconds straight. Looked like a
+   plain deadlock.
+2. Adding a "which code branch fired last" trace character alongside the
+   position showed it alternating between "moved up" and "moved down" —
+   but the position itself wasn't moving. First hint this wasn't a
+   freeze at all.
+3. Tracing **every single tick**, not sampled, for a short window is
+   what actually cracked it:
+
+```text
+S0 x=286 y=000 hp=100 wp=1 br=U atk=085
+S0 x=286 y=002 hp=100 wp=1 br=D atk=068
+S0 x=286 y=000 hp=100 wp=1 br=U atk=085
+S0 x=286 y=002 hp=100 wp=1 br=D atk=068
+S0 x=286 y=000 hp=100 wp=1 br=U atk=085
+... (repeats forever)
+```
+
+A perfect, permanent 2-tick oscillation. The side-step always tried "up"
+first, unconditionally. At `y=0` (the screen edge), "up" is blocked, so
+it falls back to "down" and moves to `y=2`. At `y=2`, "up" is no longer
+blocked — `y=0` is back on-screen — so the very next tick it takes "up"
+again, immediately undoing the step it just made. Forever. File `01`
+mostly dodged this because a soldier could often resolve combat
+*through* a wall before ever getting trapped exactly on that boundary;
+LOS forced every ranged soldier to actually complete the physical
+detour, making the trap both more likely to hit and impossible to escape
+once caught.
+
+Fix: give each soldier a sticky direction preference instead of a
+hardcoded "always try up/left first."
+
+```nasm
+struc Soldier
+    ; ...
+    .avoid_dir: resd 1   ; 0 = prefer up/left first, 1 = prefer down/right
+endstruc
+```
+
+```nasm
+mov eax, [r10 + Soldier.avoid_dir]
+test eax, eax
+jnz .prefer_down
+
+cmp dword [rbp + US_NEG_BLOCKED], 0
+jne .fallback_down
+mov dword [r10 + Soldier.avoid_dir], 0      ; up worked again -- keep preferring it
+sub dword [r10 + Soldier.y], MOVE_SPEED
+jmp .update_next
+.fallback_down:
+cmp dword [rbp + US_POS_BLOCKED], 0
+jne .update_next                            ; both blocked -- hold position
+mov dword [r10 + Soldier.avoid_dir], 1      ; up failed, down worked -- switch preference
+add dword [r10 + Soldier.y], MOVE_SPEED
+```
+
+Once a direction starts working, the soldier keeps trying it first on
+future ticks, only switching if that direction stops working too —
+breaks the flip-flop entirely. Verified by re-running the exact same
+per-tick trace (clean monotonic movement, zero oscillation) and
+confirming fight times dropped back to 9-14 seconds across repeated
+runs, with zero crashes. The same flawed logic had originated in file
+`01`, so the identical fix went into both files.
+
+```text
+--[ HOW THIS ACTUALLY GOT DEBUGGED ]---------------------------------------
+```
+
+A handful of techniques did most of the real work this session, and
+notably none of them are "just use gdb":
+
+**Repeated-run statistics, not single playthroughs.** Both fairness bugs
+— the iteration-order bias and the symmetry mismatch — were invisible in
+one game, and *nearly* invisible in a 4-game batch by sheer luck. The
+only reliable signal was running 10-24 games in a row and counting the
+win split.
+
+**Direct unit tests via a raw `write()` syscall**, dropped in temporarily
+right after a function's normal call site:
+
+```nasm
+mov edi, 100
+mov esi, 80
+mov edx, 700
+mov ecx, 80
+call line_blocked
+add eax, '0'
+mov [test1_result], al
+mov eax, 1
+mov edi, 1
+lea rsi, [test1_msg]
+mov edx, test1_msg_len
+syscall
+```
+
+More reliable than fighting gdb to call a hand-written asm function the
+way it calls a typed C one, and it gives an unambiguous expected-vs-actual
+answer for exact boundary cases.
+
+**A small C probe compiled against the real headers**, whenever a
+numeric constant or struct offset actually mattered — pixel formats,
+scancodes, event struct field offsets. Cheaper every single time than
+debugging a wrong hand-computed constant an hour later.
+
+**Per-tick tracing, not sampled tracing, the moment something looks
+"stuck."** Sampling once a second turned a perfect 2-tick oscillation
+into what looked like a plain freeze. Only tracing every single tick for
+a short window revealed the actual cycle.
+
+And a couple of genuine self-inflicted debugging bugs, worth naming
+because they cost real time:
+
+- A raw `syscall` clobbers `rcx` and `r11` — the instruction's own
+  mechanism for saving return state. A debug print stuffed into the
+  middle of existing code corrupted `r11` while it was still holding a
+  live pointer the surrounding code needed, causing a crash that looked
+  completely unrelated to the actual change.
+- Placeholder-string offset bugs — searching a debug message like
+  `"DIED team=T weapon=W"` for the letter `T` to compute a write offset,
+  when the message *also* contains a `T` earlier in "victimTeam." Fixed
+  by switching to an unambiguous placeholder character (`?`) and
+  computing offsets with a one-line Python snippet instead of counting
+  by hand like an animal.
+
+```text
+--[ WHAT'S LEFT ]----------------------------------------------------------
+  [x] toolchain, registers, stack, calling convention
+  [x] SDL2 window + raw pixel drawing
+  [x] animation + double buffering
+  [x] input (keyboard state + event queue)
+  [x] capstone: 8v8 combat, weapons, pickups
+  [x] obstacles + line of sight
+  [ ] scale to 50v50
+-----------------------------------------------------------------------------
+```
+
+Stages 0 through 6b are done. The only thing left on the original
+roadmap is scaling from 8v8 to 50v50, which should mostly be "bump
+`NUM_PER_TEAM`, confirm nothing else needs to change" — the whole
+project was already written in terms of `TOTAL_SOLDIERS`/`NUM_PER_TEAM`,
+never a hardcoded team size, specifically to make this painless. That,
+plus re-running the exact same fairness and crash-safety verification
+discipline at the new scale rather than assuming anything that held at
+8v8 automatically holds at 50v50. Given how many of the bugs above only
+showed up in the distribution of dozens of runs, I'm not assuming
+anything this time.
