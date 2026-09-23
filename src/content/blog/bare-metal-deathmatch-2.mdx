@@ -1,0 +1,627 @@
+---
+title: "Bare Metal Deathmatch II: Fifty a Side, and a Coin That Kept Landing Heads"
+description: "Scaling the hand-written x86-64 battle sim from 8v8 to 50v50, then adding collision and random spawns. A 16–0 result that was one game played sixteen times, a 9–39 bias hiding in a rule that looked identical for both teams, and six pixels."
+pubDate: 2026-09-23
+tags: ["assembly", "low-level", "gamedev"]
+---
+
+import YouTubeEmbed from "../../components/YouTubeEmbed.astro";
+
+{/* TODO: pick a video -- <YouTubeEmbed id="..." title="..." /> */}
+
+```text
+--[ PREVIOUSLY ]----------------------------------------------------------
+```
+
+[Part 1](/blog/bare-metal-deathmatch) went from a bare Ubuntu box with
+no assembler installed to an 8-vs-8 battle sim in hand-written x86-64:
+soldiers with knives, pistols, and shotguns, weapon pickups, a wall with
+a gap in it, and line of sight for ranged fire. It ended with one
+unchecked box on the roadmap, "scale to 50v50", and a promise that I
+wasn't going to assume anything that held at 8v8 would hold at 50v50.
+
+Good thing, too.
+
+The plan said 6c should mostly be "bump `NUM_PER_TEAM`, confirm nothing
+else needs to change." The loops really did need nothing. Everything
+else is this post:
+
+- a test harness whose first result was **16–0, twice**, and completely
+  meaningless
+- a **9–39** bias toward one team that 8v8 had been hiding the whole
+  time, from a rule that looked identical for both teams
+- a "cleanup" of a hand-typed number that quietly moved one team 6
+  pixels closer to every weapon on the map
+- a collision system designed mostly around *not* rebuilding Part 1's
+  nastiest bug
+- random spawn points that stay fair every single game
+
+Then I kept going past the end of the roadmap, because at 50v50 you can
+finally see what's wrong with it.
+
+Repo: https://github.com/BlueFalconDevelopment/assembly-simulation
+(`stage6c/` and `stage7/`)
+
+```text
+--[ STAGE 6C :: TURNING THE NUMBER UP ]-----------------------------------
+```
+
+Every loop in the sim already ran to `TOTAL_SOLDIERS` or `MAX_PICKUPS`,
+never a literal 16, specifically so this step would be painless. And it
+was. At 100 soldiers the O(n²) nearest-enemy scan is nothing, even in
+unoptimized hand-written asm that keeps every local on the stack.
+
+What didn't scale was the *data*.
+
+**The spawn column that ran off the screen.** Part 1 spawned each team
+as one column, 50px apart:
+
+```nasm
+imul eax, 50
+add eax, 80
+mov [r10 + Soldier.y], eax
+```
+
+At 50 per team that column ends at y=2530, roughly four screens below
+the bottom of the window. So each team became a 5-wide × 10-tall grid,
+with an assemble-time check that the numbers actually tile:
+
+```nasm
+NUM_PER_TEAM   equ 50
+SPAWN_ROWS     equ 10
+SPAWN_COLS     equ NUM_PER_TEAM / SPAWN_ROWS
+%if SPAWN_COLS * SPAWN_ROWS != NUM_PER_TEAM
+    %error "NUM_PER_TEAM must be a multiple of SPAWN_ROWS"
+%endif
+```
+
+Soldier `k` of a team goes to row `k % 10`, column `k / 10`, and one
+`div` hands you both. Team 1's x isn't typed in separately anymore
+either. It's *computed* as the mirror of team 0's box:
+
+```nasm
+    xor edx, edx
+    mov ecx, SPAWN_ROWS
+    div ecx                              ; eax = column, edx = row
+    ...
+    imul eax, SPAWN_DX
+    add eax, SPAWN_X0                    ; team 0's x for this slot
+    test r11d, r11d
+    jz .store_x
+    neg eax
+    add eax, SCREEN_W - SOLDIER_SIZE     ; mirrored for team 1
+.store_x:
+```
+
+A box covering `[x, x+16)` mirrors to `[800-16-x, 800-x)`. Hold onto
+that formula. It comes back to bite me.
+
+**Pickups from a table.** Part 1's bug #3 was a pickup layout that
+*looked* symmetric but wasn't: 180° rotational symmetry instead of
+left-right mirror symmetry, which quietly handed one team pistols and
+the other shotguns, row for row. Writing 16 pickups as 16 blocks of
+hand-typed `mov`s felt like sending that bug an engraved invitation.
+
+So only the left half gets written down:
+
+```nasm
+left_pickups:
+    dd 230,  80, WEAPON_PISTOL
+    dd 310,  80, WEAPON_SHOTGUN
+    dd 230, 220, WEAPON_SHOTGUN
+    dd 310, 220, WEAPON_PISTOL
+    dd 230, 370, WEAPON_PISTOL
+    dd 310, 370, WEAPON_SHOTGUN
+    dd 230, 510, WEAPON_SHOTGUN
+    dd 310, 510, WEAPON_PISTOL
+```
+
+`spawn_pickups` walks the table and places each entry *and* its mirror,
+same weapon type. The two halves can't disagree, because only one half
+exists.
+
+**A small proof instead of a guess.** Part 1 had 4 fixed pickups plus 4
+spare "drop slots" for weapons dropped by dead soldiers. How many spare
+slots does 50v50 need?
+
+Zero. Weapons are conserved: every weapon is either lying in exactly one
+pickup slot or held by exactly one living soldier, and a weapon only
+drops when its holder dies. So the number of weapons on the ground can
+never exceed the number that spawned. `MAX_PICKUPS` is exactly 16, and
+Part 1's spare slots were never needed in the first place.
+
+```text
+--[ TESTING WITHOUT WATCHING ]--------------------------------------------
+```
+
+Every fairness bug in Part 1 was invisible in a single game. The only
+thing that ever caught one was playing 10–24 games and counting who won.
+At 50v50 I wanted bigger samples than I was willing to sit and watch,
+which meant running the unmodified binary with no window at all.
+
+SDL makes this pretty painless. The `dummy` video driver plus the
+software renderer run an SDL2 program fully headless:
+
+```bash
+SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software ./build/01_scale_up
+```
+
+`dummy` on its own didn't work: the program exited with status 0 almost
+immediately, having printed nothing. My guess is the default hardware
+renderer can't be created without a display, which my code treats as
+"clean up and leave quietly." Adding the software renderer fixed it.
+
+The game prints exactly one line, `Team 0 (blue) wins!` or `Team 1 (red)
+wins!`, from a raw `write` syscall, then sits there until the window
+closes. So `batch.sh` launches N games, watches each one's output, kills
+the game the moment its win line shows up, and tallies. No winner inside
+the timeout is `STUCK`. Exiting without a winner is `CRASH`, with the
+exit code.
+
+**Its first result was 16–0. So was its second.** First real batch of
+the 50v50 build: **team 0: 16, team 1: 0.** Alarming! So I ran the Stage
+6b build, the verified-fair 8v8, through the same harness as a control.
+**Also 16–0.**
+
+A third run of the 50v50 build, 8 games, this time printing each game's
+result and duration, gave the game away. All eight went to team 1 this
+time, and:
+
+```text
+Team 1 (red) wins!      12.2s
+Team 1 (red) wins!      12.2s
+Team 1 (red) wins!      12.2s
+Team 1 (red) wins!      12.2s
+...
+```
+
+Every game took *exactly* 12.2 seconds. Those weren't sixteen games.
+They were one game, sixteen times. The sim seeds its RNG with
+`srand(time(NULL))`, which only changes once a second, and the harness
+launched everything in the same second.
+
+The fix was one line of bash: start each game in its own second (`sleep
+1.05` between launches, still running in parallel). The 6b control then
+came out **10–6**, with game lengths all over the place. The harness was
+finally measuring something.
+
+That lesson has nothing to do with assembly: **run the test you already
+know the answer to before you trust the test.** The control batch cost a
+minute and saved me from chasing a bias that didn't exist.
+
+```text
+--[ FAIRNESS BUG #1 :: LEFT MEANS DIFFERENT THINGS ]----------------------
+```
+
+With real seeds, the 50v50 build came out **8–16**, then **9–39**, both
+toward team 1. Combined, 17–55. That's not noise.
+
+Part 1 had turned up two sources of bias: processing order (fixed with a
+random per-tick direction) and map layout. Which one was this? One
+experiment tells them apart: **swap which side of the screen each team
+spawns on** (flip one `jz` to `jnz` in `spawn_soldiers`) and batch
+again.
+
+If the bias follows the *team*, and team 1 still wins, it's indices or
+processing order. If it follows the *side*, and whoever spawns on the
+right wins, it's the map or the movement rules.
+
+Swapped: **the team on the right still won, 30–10.** Map or movement,
+then.
+
+To narrow it down I built a throwaway copy with two counters bolted in:
+how often each team took the horizontal side-step versus the vertical
+one, read out by gdb at the end of each game:
+
+```text
+winner=2  horiz t0=1223 t1=109  vert t0=3171 t1=3309
+winner=2  horiz t0=1070 t1=87   vert t0=3317 t1=3054
+winner=2  horiz t0=1239 t1=87   vert t0=3099 t1=3124
+winner=2  horiz t0=1045 t1=87   vert t0=3355 t1=3524
+winner=2  horiz t0=1015 t1=90   vert t0=3356 t1=3103
+winner=1  horiz t0=813  t1=162  vert t0=3322 t1=3377
+```
+
+Vertical side-steps: dead even. Horizontal: team 0 was taking roughly
+**ten times** as many.
+
+The culprit was Part 1's own side-step code. When a wall blocks the
+straight path and the goal is mostly vertical, the soldier steps
+sideways, and the *sticky* preference from Part 1's oscillation fix
+starts at `avoid_dir = 0`, meaning "try −x first." That's the same
+instruction for both teams. It is *not* the same choice:
+
+- For team 1, spawned on the right, −x is **toward the enemy and toward
+  the gap**. The step helps and the path clears.
+- For team 0, −x is **straight back toward its own spawn**. The step
+  doesn't help, the path stays blocked, and next tick it does it again.
+
+At 8v8, almost nobody ever reached that branch. At 50v50, with crowds
+packed up against the wall, a big chunk of team 0 did, walking away from
+the fight over and over.
+
+Up/down never had this problem, because "up" means the same thing to
+both teams: they're mirrored left-to-right, not top-to-bottom.
+Left/right needed to be relative to the team. So the horizontal
+side-step now tries *forward* first, where forward is +x for team 0 and
+−x for team 1:
+
+```nasm
+.try_horizontal:
+    mov eax, [rbp + US_ACTUAL]
+    imul eax, Soldier_size
+    lea r10, [soldiers]
+    add r10, rax
+    mov eax, MOVE_SPEED
+    cmp dword [r10 + Soldier.team], 0
+    je .have_fwd_step
+    neg eax
+.have_fwd_step:
+    mov [rbp + US_FWD_STEP], eax
+```
+
+The rest of the branch is Part 1's sticky logic untouched, just adding
+and subtracting `US_FWD_STEP` instead of a hardcoded `MOVE_SPEED`. A
+soldier's mirror image now makes the mirror image of its choice.
+
+After the fix: **23–25** over 48 games, and 16–24 with the sides
+swapped.
+
+The general version went straight onto the project's "traps to avoid"
+list: **"the same rule for both teams" is not the same thing as "a fair
+rule."** On a mirrored map, every rule has to be symmetric *under the
+mirror*. "Try left first" is fine for a top-to-bottom mirror and quietly
+rigged for a left-to-right one.
+
+```text
+--[ FAIRNESS BUG #2 :: SIX PIXELS ]---------------------------------------
+```
+
+Before I found the side-step bug, I had a different theory. It turned
+out to be a real asymmetry, just not the one doing the damage.
+
+When I wrote the 50v50 spawn, I "cleaned up" Part 1's team positions.
+Part 1 had team 0 at x=100 and team 1 at x=700. The true mirror of a
+16px box at x=100 is `800-16-100 = 684`, so 700 looked 16px off. I
+swapped in the computed mirror, and mirrored the 10px pickups the same
+visual way, `800-10-x`.
+
+But the AI never looks at boxes. Every distance it measures runs from a
+soldier's **top-left corner** to a pickup's **top-left corner**. A 16px
+soldier and a 10px pickup, each mirrored by its own size, end up with
+different corner offsets:
+
+- team 0 soldier at x=40 to its pickup at x=230: **190px**
+- team 1 soldier at x=744 to the mirrored pickup at x=560: **184px**
+
+Team 1 was 6px closer to every weapon on the map, about 3 ticks sooner
+at 2px per tick.
+
+And Part 1's "slightly off" numbers? Soldiers at 100 and 700, pickups at
+300 and 500: distances of 200 and 200. Exactly equal. The hand-typed 700
+was right *for the metric the game actually uses*, and my tidy-up broke
+it.
+
+The fix is to mirror the pickup's corner by the **soldier's** size, so
+the corners the AI compares are symmetric:
+
+```nasm
+    mov eax, SCREEN_W - SOLDIER_SIZE
+    sub eax, ebx                          ; mirror the corner the AI measures
+                                          ; from -- SOLDIER_SIZE, not PICKUP_SIZE
+```
+
+The drawn pickup squares end up 6px off a visual mirror, which you can't
+see at this size.
+
+To be straight about the evidence: **this did not fix the 9–39.** I
+applied it first, batched, and got 9–39 again, which is exactly how I
+knew to keep digging. With the side-step fixed, putting the 10px mirror
+back gave 18–30 over one 48-game batch. It leans the way the offset
+predicts, but it's not decisive. I kept the fix because the asymmetry is
+real and costs nothing to remove, not because a batch proved it
+mattered.
+
+**6c, verified.** 96 headless games of the final build:
+
+- **team 0: 46, team 1: 50**
+- **0 stuck, 0 crashed**
+- games ran 7.7–13.6s, median 9.4s, about the same as 8v8, since more
+  soldiers also means more guns in play sooner
+
+And that closed out the original roadmap.
+
+```text
+--[ LOOKING AT A GAME NOBODY'S WATCHING ]---------------------------------
+```
+
+The harness only tells you who won. I wanted to actually *see* a 50v50
+layout without opening a window, and it turns out I didn't need one: the
+back buffer is a plain 800×600×4 array in `.bss`, so gdb can dump it
+straight to a file at any frame:
+
+```bash
+SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software gdb -q -batch \
+  -ex "break SDL_LockTexture" -ex run -ex "continue 150" \
+  -ex "dump binary memory frame.raw &back_buffer ((char*)&back_buffer)+1920000" \
+  -ex kill ./build/01_scale_up
+```
+
+`SDL_LockTexture` gets called exactly once per frame, right after the
+scene is drawn into `back_buffer`, so `continue 150` means "stop at
+frame 150." A dozen lines of Python, just zlib and a hand-built PNG
+header with no image library, turn the raw RGBA bytes into a picture.
+
+Frame 1 confirmed the two grids and all 16 pickups were exact mirrors.
+Frame 150 showed something the numbers never would have: about 30
+soldiers left, most of them **stacked on top of each other** along the
+edges of the gap. Nothing stopped two soldiers from occupying the same
+pixels, so a crowd of a dozen drew as three or four squares. Barely
+noticeable at 8v8. Obvious at 50v50.
+
+That became the first thing I changed past the end of the roadmap.
+
+```text
+--[ STAGE 7.01 :: NO MORE STACKING ]--------------------------------------
+```
+
+The obvious design is "add soldiers to the collision check." The
+interesting parts were *which* collision check, and what a soldier
+should do when it's blocked.
+
+**One new question.** The sim already had `is_box_blocked(x, y)`: would
+a soldier's box at (x, y) hit a wall or the edge of the screen? The new
+function asks the same thing about one specific soldier:
+
+```nasm
+; int is_spot_blocked(int self: edi, int x: esi, int y: edx) -> eax (1 or 0)
+is_spot_blocked:
+    ...
+    mov edi, r13d
+    mov esi, r14d
+    call is_box_blocked                  ; walls / screen edge first
+    test eax, eax
+    jnz .isb_done
+
+    xor ebx, ebx
+.isb_loop:
+    cmp ebx, TOTAL_SOLDIERS
+    jge .isb_clear
+    cmp ebx, r12d
+    je .isb_next                         ; not yourself
+    ...
+    cmp dword [r10 + Soldier.health], 0
+    jle .isb_next                        ; bodies don't block
+
+    mov eax, [r10 + Soldier.x]
+    sub eax, r13d
+    jns .isb_dx_ok
+    neg eax
+.isb_dx_ok:
+    cmp eax, SOLDIER_SIZE
+    jge .isb_next                        ; far enough apart horizontally
+
+    mov eax, [r10 + Soldier.y]
+    sub eax, r14d
+    jns .isb_dy_ok
+    neg eax
+.isb_dy_ok:
+    cmp eax, SOLDIER_SIZE
+    jge .isb_next                        ; far enough apart vertically
+
+    mov eax, 1                           ; overlaps soldier ebx
+    jmp .isb_done
+```
+
+Two boxes of the same size overlap exactly when both the horizontal and
+vertical gaps between their corners are smaller than the box. That's
+Part 1's AABB test with the general case trimmed off.
+
+What deliberately **didn't** change: `line_blocked`, the Bresenham walk
+from Part 1. It answers two questions, "can I walk straight there?" and
+"can I see to shoot?", and other soldiers shouldn't affect either. If
+teammates blocked sight lines, a crowd would never fire a shot. And the
+target sits right at the end of the line, so every shot would be blocked
+by the thing being shot at.
+
+**What to do when somebody's in the way.** The new movement order:
+
+1. If **walls** block the straight line to the goal, side-step (same as
+   before).
+2. Otherwise, take the usual step (up to 2px per axis) if nobody's
+   standing there.
+3. If somebody is, try the **main axis alone**, whichever of dx and dy
+   is bigger.
+4. If that's blocked too, fall back to the same sticky side-step that
+   routes around walls.
+
+The tempting fifth option is also sliding along the *minor* axis toward
+the goal. I left it out on purpose, because I've already watched what it
+does. Picture a soldier heading right with a teammate directly in front:
+
+- the side-step moves it up 2px to get around
+- next tick, a minor-axis slide (dy toward the goal) moves it straight
+  back down behind the teammate
+- forever
+
+That's Part 1's bug #5, the permanent 2-tick oscillation, rebuilt from
+spare parts. Going main axis → sticky side-step instead means a soldier
+commits to one way around and keeps going until it's past.
+
+**Checking an invariant, not a picture.** A dumped frame of a crowded
+gap *looked* like it might have overlapping squares in it. At 4× zoom
+you still can't tell touching boxes from overlapping ones by eye.
+
+So I stopped looking and started checking. A throwaway build calls
+`is_spot_blocked` on every living soldier's current position after every
+tick, and exits with code 99 if any of them comes back blocked:
+
+```nasm
+    mov edi, ebx
+    mov esi, [r10 + Soldier.x]
+    mov edx, [r10 + Soldier.y]
+    call is_spot_blocked
+    test eax, eax
+    jz .a_next
+    mov edi, 99
+    call exit
+```
+
+The batch harness reports any non-win exit as `CRASH (99)`. 24 full
+games ran clean. And since `is_spot_blocked` includes `is_box_blocked`,
+the same check proved no soldier ever ended up inside a wall or
+off-screen either.
+
+(My first attempt at this was a gdb script checking all 4,950 pairs
+every 50 frames. It was so slow it only made it to frame 150 before its
+5-minute timeout. Checking inside the program, in asm, costs basically
+nothing.)
+
+**Results:** two 48-game batches, 19–29 and 26–22, **45–51 combined**, 0
+stuck, 0 crashed. Games roughly doubled in length, median ~21s, because
+crowds at the gap now queue up instead of walking through each other.
+
+```text
+--[ STAGE 7.02 :: RANDOM SPAWNS, STILL FAIR ]-----------------------------
+```
+
+The grid spawn produced the same battle every time. The goal: a random
+layout every game, each team on its own side, and still fair.
+
+The fair way to do that is to randomize one team and **mirror it**. Team
+0's soldiers go at random spots on the left, and team 1's soldier k is
+the exact mirror of team 0's soldier k. Every game is a new map, and
+neither side ever gets the better half.
+
+**Rejection sampling in assembly.** For each of team 0's 50 soldiers:
+draw a random spot, and if it's within 24px (on both axes) of any team 0
+soldier already placed, throw it out and draw again. 16px would only
+prevent overlap, which the new collision code needs as a starting
+condition. The extra 8 keeps soldiers from starting out glued together.
+
+```nasm
+.ss_retry:
+    mov edi, SPAWN_MAX_X - SPAWN_MIN_X + 1
+    call rand_range
+    lea r13d, [eax + SPAWN_MIN_X]        ; x
+    mov edi, SPAWN_MAX_Y - SPAWN_MIN_Y + 1
+    call rand_range
+    lea r14d, [eax + SPAWN_MIN_Y]        ; y
+
+    ; too close to an already-placed team 0 soldier (0..k-1)?
+    xor ebx, ebx
+.ss_check:
+    cmp ebx, r12d
+    jge .ss_place
+    ...
+    cmp eax, SPAWN_GAP
+    jl .ss_retry                          ; too close on both axes
+```
+
+Only team 0 needs checking against itself. The mirror of a valid team 0
+layout is automatically a valid team 1 layout, and the halves can't
+touch, since the whole spawn area sits left of x=200. Both teams'
+soldiers get set up by one `INIT_SOLDIER` macro, so the two sides come
+from literally the same lines rather than two copies that could drift
+apart.
+
+**Does that loop always finish?** It has no attempt limit. My first
+comment in the code justified that with "50 blocked squares cover less
+than half the spawn area." Then I actually did the arithmetic: each
+placed soldier blocks a 47×47 square of possible positions, 50 × 47² ≈
+110,000, and the spawn rectangle is 169 × 537 ≈ 91,000. The comment was
+wrong. The blocked squares add up to *more* than the entire area. They
+overlap each other heavily, which is why it works anyway, but "why it
+works" needed measuring, not asserting.
+
+So I simulated the exact algorithm in Python over 2,000 layouts:
+
+```text
+total tries: mean 111  max 165;  worst single spawn: max 32
+100 placed
+150 jammed at 104
+```
+
+About 111 random draws per 50-soldier layout on average, and the
+unluckiest single soldier needed 32. Comfortable. But it isn't unlimited
+headroom: at this spacing the rectangle jams at roughly 100 per team,
+and past that the loop would spin forever. The code comment now says
+exactly that, and "make it give up gracefully" is an exercise at the
+bottom of the file.
+
+**The bug that never got the chance.** Until this file, `main` did this:
+
+```nasm
+    call spawn_soldiers
+    call spawn_pickups
+    call spawn_obstacles
+
+    xor edi, edi
+    call time
+    mov edi, eax
+    call srand
+```
+
+Harmless while spawning never touched `rand`. With random spawns, every
+game would get the same "random" layout from `rand`'s default seed,
+whatever the clock said. Same family as the harness's 16–0, coming from
+the other direction. `srand` goes first now.
+
+**Jittered weapons.** The pickups keep 6c's table, positions and the
+pistol/shotgun checkerboard, but each one gets nudged by a random offset
+of up to 30px on each axis before it's mirrored. A bit of variety, while
+staying between the spawn area and the wall.
+
+**Verified:**
+
+- two dumped layouts: both exact mirrors (soldiers *and* pickups,
+  including pickup type), minimum spacing exactly 24, different
+  positions each run
+- fairness: **26–22** and **27–21**, 53–43 combined, 0 stuck, 0 crashed
+- the per-tick overlap check, rebuilt on this file: 24 games clean
+
+```text
+--[ WHAT THIS ONE WAS ACTUALLY ABOUT ]------------------------------------
+```
+
+Part 1's lesson was "a single run proves nothing, count the outcomes."
+Part 2 turned out to be variations on that theme:
+
+- **Verify the harness before trusting it.** A known-fair control batch
+  caught a 16–0 that was one game played sixteen times. Identical
+  durations were the giveaway.
+- **Bisect a bias with one experiment.** Swapping which side each team
+  spawns on said whether to look at processing order or at the map. It
+  was the map.
+- **Symmetric has to mean symmetric under the mirror.** "Same rule for
+  both teams" and "fair rule" are two different claims.
+- **Know the metric the code actually uses.** The AI measures corner to
+  corner, not box to box, and a visually perfect mirror was wrong for
+  it.
+- **Check invariants in code, not in pictures.** Touching and
+  overlapping look identical zoomed in. An in-program assertion across
+  24 games doesn't squint.
+- **Measure the claims in your comments.** The spawn loop was fine. Its
+  justification wasn't.
+
+```text
+--[ WHAT'S LEFT ]---------------------------------------------------------
+  [x] toolchain, registers, stack, calling convention
+  [x] SDL2 window + raw pixel drawing
+  [x] animation + double buffering
+  [x] input (keyboard state + event queue)
+  [x] capstone: 8v8 combat, weapons, pickups
+  [x] obstacles + line of sight
+  [x] scale to 50v50
+  [x] soldier-vs-soldier collision
+  [x] random, mirrored spawns
+  [ ] finer RNG seed
+  [ ] hand-rolled xorshift instead of libc rand()
+-----------------------------------------------------------------------------
+```
+
+The original roadmap is done, all of it. Next up, probably: seeding from
+something finer than `time(NULL)` so the harness can launch every game
+at once, swapping libc's `rand()` for a hand-rolled xorshift in pure
+assembly, and maybe letting weapons scatter a little when their owner
+drops dead instead of landing exactly where they fell.
