@@ -1,5 +1,7 @@
 # Tech Blog
 
+**🔗 Read the blog: [tech-blog-bluefalcon.netlify.app](https://tech-blog-bluefalcon.netlify.app)**
+
 An [Astro](https://astro.build) blog: Markdown/MDX posts, Tailwind CSS v4,
 manual dark mode, tags, RSS, sitemap, auto-generated OG images,
 [Pagefind](https://pagefind.app) search, a Netlify Forms contact page, and
