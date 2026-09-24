@@ -1,0 +1,210 @@
+# Learning x86-64 Assembly, Part 4: Arenas and Headless Mode
+
+2026-09-24 · @Someone
+
+## Overview
+
+[Part 3](/blog/bare-metal-deathmatch-3) swapped libc's `rand()` for a hand-rolled xorshift, added tracers and knife animations that provably don't change the fight, then friendly fire, then hold fire, and chased a fairness bug one pixel wide. Every one of those games was fought over the same map: one wall down the middle with a gap in it. This post covers two changes:
+
+- **7.07:** more arenas: five wall layouts, picked at random each game
+- **7.08:** headless mode: a whole game in a sixth of a second, with no window
+
+The first one went mostly to plan, except for one layout the soldiers couldn't solve. The second one I built because of a mistake of mine that slowed the whole desktop to a crawl, and once batches got fast, it found a problem the slow batches had been hiding.
+
+Repo: https://github.com/BlueFalconDevelopment/assembly-simulation (`stage7/`)
+
+## Stage 7.07 — Walls as data
+
+Since Stage 6c the obstacles were two hard-coded `mov` blocks in `spawn_obstacles`: one wall at x 370–430, split by a gap in the middle. Adding arenas meant turning that into data, and the constraint was the same one that has shaped this whole project: **both teams have to get the same map, mirrored.** Every fairness bug so far came from something that looked symmetric and wasn't.
+
+**List half the walls, mirror the rest in code.** Each arena lists only its left-half walls. `spawn_obstacles` copies each one, then adds its mirror image, `x' = 800 - x - w`, unless the wall is its own mirror (it straddles the centre line):
+
+```nasm
+    mov eax, SCREEN_W
+    sub eax, [rsi + Obstacle.x]
+    sub eax, [rsi + Obstacle.w]   ; mirrored x
+    cmp eax, [rsi + Obstacle.x]
+    je .so_next                   ; its own mirror -- only one copy
+```
+
+That makes every arena symmetric by construction. There's no way to type in a lopsided map, because there's no way to type in the right half at all.
+
+**Bad layouts are build errors.** The wall lists are written with three NASM macros, `ARENA`, `WALL` and `END_ARENA`, and the macros check each wall while the file assembles:
+
+```nasm
+%macro WALL 4   ; x, y, w, h
+    dd %1, %2, %3, %4
+    %if SCREEN_W - (%1) - (%3) == (%1)
+        %assign arena_full arena_full + 1
+    %else
+        %if (%1) + (%3) > SCREEN_W / 2
+            %error "wall crosses the centre line but isn't its own mirror"
+        %endif
+        %assign arena_full arena_full + 2
+    %endif
+    %if (%1) < SPAWN_MAX_X + SOLDIER_SIZE
+        %error "wall overlaps the spawn strip"
+    %endif
+    %assign arena_walls arena_walls + 1
+%endmacro
+```
+
+A wall that crosses the centre without being its own mirror would overlap its own reflection. A wall in the spawn strip could trap a soldier inside it at the start. More than 16 walls after mirroring would overflow the `obstacles` array. All three now stop the build instead of producing a game that's quietly wrong. The preprocessor is doing the job a unit test would do in a higher-level language, and it runs every time I type `make`.
+
+An arena is then just a list:
+
+```nasm
+    ARENA crossroads              ; corridors: x 370-430, y 225-375,
+        WALL 300,  75,  70, 150   ; and 75px lanes along top and bottom
+        WALL 300, 375,  70, 150
+    END_ARENA crossroads
+```
+
+**Pickups slide out of walls.** The weapon pickup table didn't change, and several new arenas put walls right on top of its spots. So after its random jitter, each pickup asks the same question the movement code asks: could a soldier stand here? (`is_box_blocked`.) If not, it slides one pixel toward its own team's spawn and asks again. The mirrored pickup copies the final x, so it slides the other way, and the layout stays symmetric. Walls never reach the spawn strip, so the slide always stops. And it draws no random numbers, so it can't shift anything else in the game.
+
+**Picking an arena.** Each game picks one at random, or an `ARENA` environment variable picks one, which is how a batch tests one map at a time. Reading an environment variable is `getenv` plus `atoi`, two libc calls. Part 3 made a point of removing libc's random numbers, so this is libc creeping back in, but only as glue at startup, the same role SDL plays. The window title and the win line name the arena:
+
+```
+Team 0 (blue) wins on Pillars! (friendly fire: 0 hits, 0 kills; held fire 1954 times)
+```
+
+## The arena the soldiers couldn't solve
+
+The first set had five layouts: the original **Divide**, a staggered grid of **Pillars**, four big blocks forming **Crossroads**, some short walls and a bunker called **Outposts**, and **Zigzag**: three long walls, open at alternate ends, so crossing the map meant going down, then up, then down again.
+
+Before writing any assembly I checked the layouts in a short Python script: walls clear of the spawn strips, every pickup slide ending on open ground, and a rendered preview of each map. They all passed. Then the first headless game of each ran, and four finished. Zigzag didn't.
+
+A frame dumped from gdb showed both teams milling behind their own walls, nobody crossing. That's not a bug, it's the movement AI working exactly as written. Soldiers know one rule: **walk straight at the target, and when a wall is in the way, side-step perpendicular until the line is clear.** A route that starts by walking *away* from the enemy, down to go around one wall and then back up for the next, is invisible to that rule.
+
+So I opened up the walls so each could be passed at either end. It got better, not fixed: 4 of 16 games still stalled. Shorter walls again: 2 of 24 still ran past 240 seconds, when normal games took 18 to 57.
+
+**A freeze or just slow?** An earlier stage taught me that sampling a stuck game once a second can hide an infinite loop, so I replayed a stuck seed in gdb and logged every living soldier every 20 ticks. It wasn't a freeze. The last few soldiers were wandering. One slid up the whole left edge of the screen, reversed, and slid all the way back down. The side-step is **sticky**, a fix from 6b that stopped soldiers flip-flopping every tick, so it keeps going the way it last went until something blocks it. In a corridor between long walls, that means sweeping the full length of the map, back and forth, while the target moves somewhere else.
+
+The same wandering stalled the first Crossroads (90×200 blocks) once in 16 games, and later the first Outposts (120px horizontal bars) twice in 144. A horizontal bar is the long way round for a soldier heading up or down.
+
+I asked myself whether to stop and write real pathfinding, or ship arenas this AI can handle. I shipped the arenas and put pathfinding at the top of the list for next time. Zigzag became **Trenches** (short, staggered segments), Crossroads got smaller blocks and 75px lanes, and Outposts' bars went down to 80px. The rule of thumb for the current AI: **every wall short enough to side-step past quickly, and no long walls in series.**
+
+**Fairness.** Three batches of 48 per arena, 720 games:
+
+| Arena | Blue–red | Stalled |
+|---|---|---|
+| Divide | 69–75 | 0 |
+| Pillars | 67–77 | 0 |
+| Crossroads | 79–65 | 0 |
+| Trenches | 77–67 | 0 |
+| Outposts | 79–65 | 0 |
+| **Total** | **371–349** | **0** |
+
+371–349 is less than one standard deviation from even.
+
+**Six in a row.** Then I watched some games, and red won six in a row on the new maps. That happens by chance about 1 time in 64. Unlikely enough that "the batches said it's fair" wasn't a good enough answer, because watched games and batch games are the same code, so if one is biased so is the other. Two more batches each on the three maps red had won: **153–134, for blue.** The streak was luck. But one Pillars game in that recheck stalled, the first in about 210 Pillars games. Keep that in mind.
+
+## I nearly froze my own desktop
+
+Batch testing had always meant `STAGGER=0 ./batch.sh 48`: 48 copies of the game launched at once on SDL's dummy video driver, each running at 60 fps and drawing every frame into a buffer that nobody sees. To speed up the arena testing I ran two arenas' batches side by side, 96 games at once, plus, separately, 40 copies under gdb hunting for a stuck seed.
+
+The computer slowed to the point where it looked like it was going to crash. That was my mistake, not the machine's.
+
+Afterwards I measured one game. It uses about **5% of one core** (the frame cap means it sleeps most of each frame) and about 15 MB of memory. So 96 games shouldn't have needed the whole CPU. What they did need was memory bandwidth: every game clears, redraws and copies an 800×600 frame 60 times a second, roughly 200 MB/s each even with nobody watching, and 96 of them come to something like 20 GB/s. That's an estimate from the numbers, not something I measured, but it fits. The gdb copies made it worse: each one stopped its game every tick to count breakpoint hits.
+
+The first fix was simple. `batch.sh` now runs at most `JOBS` games at once (default 4), under `nice`, starting the next as each one finishes:
+
+```bash
+for i in $(seq "$games"); do
+    # wait for a free slot before starting the next game
+    while [ "$(jobs -rp | wc -l)" -ge "$max_jobs" ]; do wait -n; done
+    run_one &
+```
+
+That made a 48-game batch take about 6 minutes instead of 1, which pointed at the real fix. Nobody watches a batch, so why was it drawing anything?
+
+## Stage 7.08 — A game with no window
+
+With `HEADLESS=1` set, `main` never calls SDL at all. After spawning, it runs the update and the win check back to back, as fast as the CPU allows:
+
+```nasm
+.hl_loop:
+    call update_soldiers
+    inc dword [ticks]
+    call check_win
+    test eax, eax
+    jnz .hl_won
+    cmp dword [ticks], MAX_TICKS
+    jb .hl_loop
+    lea rsi, [stalemate_msg]
+    mov edx, stalemate_msg_len
+    call print_result
+    jmp .cleanup_none
+```
+
+No window, no drawing, no frame cap. A whole game now takes about **0.16 seconds** of one core, where the windowed game takes 20 to 50 seconds. A 48-game batch, still only 4 at a time, takes **2.7 seconds** instead of 6 minutes.
+
+**Same game, proven.** Rendering was always supposed to be a pure function of the game state. Part 3 proved the effects were cosmetic. But "supposed to" is exactly the kind of claim this project has learned to test, so I used Part 3's fixed-seed gdb recipe again: set `rng_state` to a known value, run to `print_result`, dump the game state. For three seeds on three different arenas, headless and windowed runs ended with byte-identical soldiers, pickups, RNG state and tick count.
+
+**Ticks instead of stopwatches.** The win line now ends with the game's length in ticks (one tick = one frame in a window):
+
+```
+Team 0 (blue) wins on Pillars! (friendly fire: 0 hits, 0 kills; held fire 1673 times; 952 ticks)
+```
+
+A headless game that reaches 30,000 ticks, over 8 minutes of game time, stops and prints `Stalemate on <arena>!` instead. Until now `batch.sh` decided a game was stuck when it outran a wall-clock timeout, which depends on how busy the machine is. Now the game decides for itself, in game time. The windowed game has no limit, so a stalemate can still be watched for as long as anyone wants.
+
+**A bug in the harness.** `batch.sh` copies each game's result line to stderr with `tee /dev/stderr`. When stderr is redirected to a file, `tee` doesn't write to the file already open. It opens `/dev/stderr` again, **with truncation**. So appending ten batches to one log with `2>>log` kept only the last batch. I found it when a 480-game run left exactly 48 lines in every log. It now writes each line to stderr directly.
+
+I made another mistake in the same run, in a throwaway script: an `awk` one-liner summing the wrong columns reported red winning 10 games out of 480. A result that absurd is almost always a measurement bug, and it was. I recounted from the per-game lines.
+
+## What fast batches found
+
+With games this cheap, a sample size that used to take an afternoon takes two minutes. 480 games per arena, 2,400 in all, still 4 at a time:
+
+| Arena | Blue–red | Stalemates | Median ticks | 99th percentile |
+|---|---|---|---|---|
+| Divide | 241–239 | 0 | 1,483 | 2,077 |
+| Pillars | 243–232 | 5 | 991 | 4,853 |
+| Crossroads | 254–222 | 4 | 1,042 | 4,703 |
+| Trenches | 236–244 | 0 | 1,096 | 1,724 |
+| Outposts | 251–225 | 4 | 934 | 9,732 |
+| **Total** | **1,225–1,162** | **13** | | |
+
+Still fair: 1,225–1,162 is about 1.3 standard deviations from even. 0 crashes.
+
+But **13 games in 2,400 ran all 30,000 ticks**, on Pillars, Crossroads and Outposts. 7.07's batches of 48 said "0 stalled" for all three. They weren't wrong, just too small: at 0.5%, a 144-game sample expects less than one. That Pillars stall in the recheck was the same thing showing through.
+
+It's the wandering from Zigzag, just rarer on open maps. The fix is still pathfinding, and now there's a way to measure it: 2,400 games before, 2,400 games after, in about four minutes.
+
+## What this one was actually about
+
+- **Make the wrong thing impossible to write.** Arenas list half their walls and code mirrors the rest, so an unfair map can't be typed in. The build-time checks catch the layouts that would break it anyway.
+- **An AI's limits show up in its environment.** The movement rule had worked on one map since Stage 6c. A new map, not new code, showed what it couldn't do.
+- **Say what your sample size can see.** 0 stalls in 144 games means "rarer than about 1 in 50," not "never." It took 2,400 to find 0.5%.
+- **A streak is a question, not an answer.** Six red wins in a row was worth a recheck. The recheck said luck, and it was also where the first sign of the stalemates turned up.
+- **Tests shouldn't swamp the machine.** 96 games at once was my mistake. The fix wasn't just a lower limit, it was noticing that batches didn't need to draw anything.
+- **Tools have bugs too.** `tee /dev/stderr` truncating a log, and my own one-liner reading the wrong column: when a number looks absurd, check the measurement first.
+
+## What's left
+
+```
+--[ WHAT'S LEFT ]---------------------------------------------------------
+  [x] toolchain, registers, stack, calling convention
+  [x] SDL2 window + raw pixel drawing
+  [x] animation + double buffering
+  [x] input (keyboard state + event queue)
+  [x] capstone: 8v8 combat, weapons, pickups
+  [x] obstacles + line of sight
+  [x] scale to 50v50
+  [x] soldier-vs-soldier collision
+  [x] random, mirrored spawns
+  [x] rdtsc seed + hand-rolled xorshift instead of libc rand()
+  [x] attack animations
+  [x] friendly fire + hold fire
+  [x] five mirrored arenas, checked at build time
+  [x] headless mode: a whole game in ~0.16s
+  [ ] pathfinding (and bring back Zigzag)
+  [ ] smarter repositioning when a teammate blocks the shot
+  [ ] on-screen scoreboard in a hand-made pixel font
+  [ ] push the soldier count: how many before it hurts?
+-----------------------------------------------------------------------------
+```
+
+Next up, pathfinding: a flow field on a grid, where a breadth-first search spreads out from the enemies and each soldier walks downhill. It has to be mirror-fair like everything else. A BFS that always checks its neighbours in the same order is exactly the kind of "same code for both teams" that Part 2 showed can favour one side. And with headless batches, I'll know within minutes whether the 13 stalemates are gone. After that, Zigzag gets to come back.
+
