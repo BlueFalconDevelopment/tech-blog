@@ -1,0 +1,203 @@
+# Learning x86-64 Assembly, Part 5: Pathfinding, Traffic, and a Scoreboard
+
+2026-09-24 · @Someone
+
+<YouTubeEmbed id="7_tSe9BXs1g" title="Jazzy Atmospheric Jungle and DnB To Relax and Focus - disconnected_001.mp3" />
+
+## Overview
+
+[Part 4](/blog/bare-metal-deathmatch-4) ended with five mirrored arenas, a headless mode that plays a whole game in a sixth of a second, and a number I didn't like: **13 games in 2,400 ended in stalemate**, the last few soldiers wandering along walls for 30,000 ticks. The fix I promised was pathfinding. This post covers that and what came after it:
+
+- **7.09:** flow-field pathfinding, plus a way to replay any game from its seed
+- **7.10:** steering around other soldiers, not just walls
+- **7.11:** a scoreboard, in a pixel font I drew by hand
+
+Pathfinding cut the stalemates from 13 to 4. Chasing the last few turned up a deadlock that had been in the game since pickups existed, then a traffic jam, and after both fixes the sim ran 6,240 games without a single stalemate. Along the way, one result looked like a 1-in-250 fairness bug, and wasn't.
+
+Repo: https://github.com/BlueFalconDevelopment/assembly-simulation (`stage7/`)
+
+## Stage 7.09 — Flow fields
+
+Until now, movement was one rule: walk straight at the goal, and if a wall is in the way, side-step perpendicular until the line is clear. Part 4 showed where that breaks. In a maze it can't find a route that starts by walking *away* from the enemy, and on open maps the "sticky" side-step sometimes sweeps the full length of a wall and back, forever.
+
+**A flow field** turns the problem around. Instead of each soldier searching for a path, the map works out, once per tick, how far every spot is from the nearest enemy. A soldier that can't walk straight just steps to whichever neighbouring spot is closer. Walking downhill on that distance map always leads around walls, because the distances were measured around them.
+
+**The grid.** The field lives on a grid over soldier *corner* positions (the top-left of each 16px box, which is what the game tracks). Once per game, `build_walkable` marks each cell where a soldier could stand *anywhere* inside it without touching a wall. That's a single rectangle test: the cell's range of corner positions, grown by the soldier's size. It's strict on purpose. A soldier moving between walkable cells can't clip a wall, whatever pixel it's on.
+
+**The fields.** Every tick, before anyone moves, `build_fields` runs three breadth-first searches over the walkable cells: distance to the nearest living soldier of team 0, the same for team 1, and distance to the nearest weapon pickup. A BFS is a queue: start from every source cell at distance 0, then repeatedly take a cell off the front and give each unvisited walkable neighbour its distance plus one. Each cell is queued at most once, so the queue is a flat array that never wraps. The inner step is a macro:
+
+```nasm
+%macro BFS_VISIT 1
+    lea eax, [ebx + %1]
+    cmp byte [r10 + rax], 0
+    je %%skip
+    cmp word [r8 + rax*2], UNREACHED
+    jne %%skip
+    mov [r8 + rax*2], r12w
+    mov [r9 + r11*4], eax
+    inc r11d
+%%skip:
+%endmacro
+```
+
+When `line_blocked` says a soldier's straight line to its goal hits a wall, `flow_waypoint` looks at the 8 cells around the soldier's own and picks the closest (a diagonal only counts if both cells it cuts past are walkable, so the step can't clip a wall's corner). The soldier then walks to that cell's centre with the normal step code. The old side-step is only a fallback now.
+
+**Why the cells are 9 pixels, not 8.** This is where the project's history came in. Every fairness bug so far came from something that looked symmetric and wasn't, and a grid is an easy place to hide one. The teams are left-right mirror images. A soldier corner at `x` mirrors to `784 - x`, so corners run over x = 0..784, which is 785 positions, an odd number. For the grid to be fair, every cell has to mirror onto exactly one cell. With 8px cells that's impossible: the mirror line would have to fall on a cell boundary or through a cell's centre pixel, and 8 wide gives neither. With 9px cells, where cell k covers `[9k-8, 9k]`, cell k mirrors exactly onto cell 88−k, because 784 + 8 is a multiple of 9. The assembler checks it:
+
+```nasm
+%if (SCREEN_W - SOLDIER_SIZE + CELL - 1) % CELL != 0
+    %error "grid cells don't mirror onto grid cells: need (784 + CELL-1) % CELL == 0"
+%endif
+```
+
+The rest of the fairness argument: BFS distances don't depend on the order cells are visited in, only on the grid, and the grid is symmetric (I checked every arena in Python). And when two neighbours are equally close, the tie goes "forward", toward the enemy's side, first. That's the same rule that fixed Part 2's side-step bias.
+
+**Checking it against Python.** I dumped the walkable grid and all three fields from gdb and recomputed them in Python. The grid matched. The fields didn't, which briefly worried me, until I realised I had dumped them in the middle of a tick, after some soldiers had already moved away from where the fields were computed. Dumped right after `build_fields` returns, at two different ticks, all three fields matched cell for cell.
+
+**Cost:** a headless game went from about 0.16s to 0.18s. Three searches over 5,874 cells per tick is cheap next to checking every soldier's box along every line of fire.
+
+## A 1-in-250 result that wasn't real
+
+The first 480-game run on 09 came back with Crossroads at **271–208** for blue. If the game were fair, a split that lopsided happens by chance about 1 time in 250. Worse, Crossroads had leaned blue before: 79–65 in 7.07, 254–222 in 7.08. That looked like an old asymmetry that pathfinding had made worse.
+
+I reviewed the new code for anything that wasn't mirror-symmetric and found nothing. Then I tried Part 2's trick: swap which side each team spawns on, and see whether the lean follows the side or the team. It came out 243–237, but I had to throw that result out. The "forward first" tie-break belongs to the team, not to the side of the map, so a swapped team 0 was preferring steps *away* from its enemy. The test broke the very symmetry it was supposed to probe.
+
+What settled it was a fresh sample, with its size decided before running it: 2,400 more Crossroads games. **1,195–1,198.** Dead even. One arena out of five landing at 1 in 250 isn't that strange once you count all five.
+
+## Replaying a stalemate
+
+Pathfinding cut stalemates from 13 in 2,400 to 4. To see what the rest were, I needed one I could replay, so I tried 800 fixed seeds in gdb, and none of them stalled. At about 0.3%, I'd expected two or three.
+
+So the game learned to replay itself. `SEED=n` sets the starting RNG state (decimal or hex, parsed with libc's `strtoull`), and a stalemate line now ends with the seed it started from:
+
+```
+Stalemate on Crossroads! (friendly fire: 0 hits, 0 kills; held fire 5327 times; 30000 ticks; seed 0xe05f207784eec9a0)
+```
+
+Printing a 64-bit number in hex is a small loop: rotate the next 4 bits to the bottom, look them up in a 16-character string.
+
+```nasm
+append_hex64:
+    mov word [rdi], '0x'
+    add rdi, 2
+    mov ecx, 16
+.ah_loop:
+    rol rsi, 4
+    mov eax, esi
+    and eax, 0xF
+    lea rdx, [hex_digits]
+    mov al, [rdx + rax]
+    mov [rdi], al
+    inc rdi
+    dec ecx
+    jnz .ah_loop
+    ret
+```
+
+Now any stuck game in a batch is one command away from being traced in gdb.
+
+## A pickup nobody could reach
+
+The first two stalemate seeds replayed as the same deadlock, mirrored on both teams at once. On each side, a soldier holding a shotgun stood exactly on a pistol pickup, with 5 to 7 knife-carrying teammates packed around him.
+
+Soldiers with a gun never pick anything up. His knife-carrying teammates were closer to that pickup than to any enemy, so it was their goal, and they needed to get within `PICKUP_RADIUS` of it: **15 pixels, less than one body width (16).** With him standing on the spot, nobody else could ever get that close. They shuffled 2 pixels back and forth for 29,000 ticks.
+
+This had nothing to do with pathfinding. It could have happened in any version since pickups existed. It was just rarer than the wall-wandering it had been hiding behind. The fix is one line:
+
+```nasm
+PICKUP_RADIUS equ SOLDIER_SIZE + 8
+```
+
+Now anyone touching the soldier on the spot can grab it, the crowd takes the weapon and moves on, and the soldier in the middle is free.
+
+**Zigzag comes back.** Part 4's maze, the one layout the old movement couldn't solve, went back in as arena 5, exactly as first designed. Over 3,840 games on 09 there was 1 stalemate, and it was on Zigzag.
+
+## Stage 7.10 — Traffic
+
+That last stalemate replayed as a jam at the end of Zigzag's first wall. I traced it one `flow_waypoint` call at a time, and every soldier was getting a sensible waypoint. The problem was two of them:
+
+- soldier 11 wanted to go down-right, soldier 39 up-right, 15 pixels apart, so each one's step was blocked by the other
+- 39 had an equally good way round, one cell straight to the right, but `flow_waypoint` only ever returned the single closest cell
+- a blocked step fell back to the old sticky side-step, and 11's preference was "back", so it bounced between two cells every tick: forward into the jam, blocked, back, forward
+
+The flow field routes around walls. It knows nothing about other soldiers.
+
+**The fix:** `flow_waypoint` now works in two passes. Pass one collects every neighbouring cell that is strictly closer to the goal. Pass two tries them closest first and takes the first one whose next step no other soldier is blocking. Only if every one is blocked does it fall back to the old behaviour. Ties still go forward first, and "strictly closer" means a soldier can never bounce between two equally good cells.
+
+Pass two calls `is_spot_blocked`, so the function now makes calls. Its state moved out of registers into a stack frame: 8 candidate slots, plus the soldier's index and position. Five pushes plus 80 bytes of locals keeps the stack 16-byte aligned for those calls, which the System V calling convention requires.
+
+**The results:**
+
+| Arena | Games | Blue–red | Stalemates | Longest game (ticks) |
+|---|---|---|---|---|
+| Divide | 480 | 243–237 | 0 | 1,868 |
+| Pillars | 480 | 242–238 | 0 | 1,238 |
+| Crossroads | 480 | 256–224 | 0 | 1,392 |
+| Trenches | 480 | 246–234 | 0 | 1,702 |
+| Outposts | 480 | 219–261 | 0 | 1,247 |
+| Zigzag | 1,440 | 721–719 | 0 | 2,732 |
+| **Total** | **3,840** | **1,927–1,913** | **0** | |
+
+Outposts' 219–261 is about 1.9 standard deviations, which is unremarkable across six arenas. After the Crossroads episode I rechecked it anyway: 2,400 fresh games, **1,188–1,212**, and again 0 stalemates. That's **6,240 games without a stalemate**, every one finished within 2,732 ticks (about 46 seconds at 60 fps). Zigzag, the map that stalemated almost every game in Part 4, now has a median game of 1,756 ticks.
+
+## Stage 7.11 — A scoreboard
+
+Everything so far printed its results to the terminal. Now there's a scoreboard in the window:
+
+```
+BLUE 37            ZIGZAG   0:11            RED 39
+```
+
+It shows the living soldiers per team, in team colours, the arena, and the game clock. When the game ends, the middle shows `RED WINS` or `BLUE WINS`.
+
+**A strip, not an overlay.** Walls touch the top edge in two arenas, and soldiers fight right up to every edge, so text on the field would hide part of the fight. Instead the window grows by 24 pixels, to 800×624, and the scoreboard gets its own strip underneath. Only five things had to change: the window, the texture, the loop that copies the frame, the frame buffer's height, and the buffer's size. The game still uses a 600-pixel field, so nothing moved.
+
+**The font.** A 5×7 pixel font, one glyph for every character from space to `Z`, drawn by hand. Each glyph is 7 bytes, one per row, with bit 4 as the leftmost pixel. Written in binary, the source looks like the letter:
+
+```nasm
+    GLYPH 'R', 11110b, 10001b, 10001b, 11110b, 10100b, 10010b, 10001b
+```
+
+Read the 1s down the rows and there's an R. The table is indexed by ASCII code, so a glyph in the wrong slot would draw the wrong letter. A pair of macros counts entries as the file assembles and stops the build if a glyph is out of order.
+
+`draw_text` looks up each character's 7 bytes and turns every set bit into a 2×2 square with `fill_rect`, 12 pixels per character. The numbers come from `append_uint`, the digit-printing routine from Part 3, and a small macro measures each string to left-align, right-align or centre it.
+
+**Drawing only, proven.** The scoreboard reads the soldiers, the tick counter and the winner, and writes nothing but pixels. That's the same claim Part 3 made for the tracers, so I checked it the same way: three fixed seeds on three arenas, windowed, and 7.10 and 7.11 ended with byte-identical soldiers, pickups, RNG state and tick counts. Then I dumped frames from gdb to look at it. My first attempt at a game-over frame fired too early and showed `0:12` mid-game. Breaking on `print_winner` instead caught `RED WINS`, `BLUE 0`, `RED 21`.
+
+## What this one was actually about
+
+- **Symmetry has to survive discretisation.** A grid is a new place for the mirror to break. An even cell width can't be symmetric over an odd number of positions, and an assembler check now makes sure it never is.
+- **Check your check.** The fields "failed" against Python because I dumped them at the wrong moment, and the side-swap test "passed" because it broke the symmetry it was meant to test. Both times the tool was wrong, not the code.
+- **A fresh sample beats an argument.** 271–208 looked like a bug and had some history behind it. 2,400 new games settled it in two and a half minutes.
+- **Make failures replayable.** Hunting a 0.3% stalemate by trying seeds one at a time found nothing in 800 tries. Having the game print its own seed turned every stuck game into a test case.
+- **Fixing one bug uncovers the next.** The pickup deadlock had been there since pickups existed, hidden behind the wall-wandering. The traffic jam only showed up once both of those were gone.
+- **"Cosmetic" is still a claim you can test.** Same fixed-seed, byte-for-byte check as the tracers: the scoreboard changes nothing but pixels.
+
+## What's left
+
+```
+--[ WHAT'S LEFT ]---------------------------------------------------------
+  [x] toolchain, registers, stack, calling convention
+  [x] SDL2 window + raw pixel drawing
+  [x] animation + double buffering
+  [x] input (keyboard state + event queue)
+  [x] capstone: 8v8 combat, weapons, pickups
+  [x] obstacles + line of sight
+  [x] scale to 50v50
+  [x] soldier-vs-soldier collision
+  [x] random, mirrored spawns
+  [x] rdtsc seed + hand-rolled xorshift instead of libc rand()
+  [x] attack animations
+  [x] friendly fire + hold fire
+  [x] five mirrored arenas, checked at build time
+  [x] headless mode: a whole game in ~0.16s
+  [x] flow-field pathfinding (and Zigzag is back)
+  [x] steering around other soldiers: 0 stalemates in 6,240 games
+  [x] on-screen scoreboard in a hand-made pixel font
+  [ ] smarter repositioning when a teammate blocks the shot
+  [ ] push the soldier count: how many before it hurts?
+  [ ] weapons scattering when dropped
+-----------------------------------------------------------------------------
+```
+
+Next is probably the soldier count. Headless mode makes it easy to measure, and the obvious suspect is still `first_in_line`, which checks every soldier's box at every point along every line of fire. Now there's a scoreboard to watch the numbers on, too.
