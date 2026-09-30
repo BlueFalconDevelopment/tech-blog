@@ -34,7 +34,7 @@ It's still all hand-written NASM, one numbered step folder per change.
 The old last-gang-standing sim still runs underneath as a test harness,
 and it was **byte-identical** after every one of these steps.
 
-Repo: https://github.com/BlueFalconDevelopment/assembly-simulation
+Repo: private now — this project is on its way to becoming a game on Steam.
 (`stage10/17_pause` to `stage10/21_pay`)
 
 ```text
@@ -84,7 +84,7 @@ A gdb bot checks it by pressing keys through SDL's own keyboard array:
 ESC pauses, then 300 frames later every soldier is byte-for-byte the
 same and the clock hasn't moved.
 
-![The pause menu with QUIT TO TITLE chosen, and the controls page](https://raw.githubusercontent.com/BlueFalconDevelopment/assembly-simulation/main/docs/pause.png)
+![The pause menu with QUIT TO TITLE chosen, and the controls page](/images/bare-metal-deathmatch/pause.png)
 
 The frames caught two layout bugs first. One menu row was 15 characters
 where the table assumed 16, so the rows drifted: "QUIT TO TITLEYOU",
@@ -112,7 +112,7 @@ TAB opens what you're carrying, as another page of the pause:
 - **Your ride and its health:** riding, parked, or wrecked in red.
 - **The package** and its clock.
 
-![The inventory with every gun bought, and again with a wrecked bike and a late package](https://raw.githubusercontent.com/BlueFalconDevelopment/assembly-simulation/main/docs/inventory.png)
+![The inventory with every gun bought, and again with a wrecked bike and a late package](/images/bare-metal-deathmatch/inventory.png)
 
 The code review on 10.17 had pointed out that the pause menu copied the
 shop's key handling line for line. With a third menu coming, that became
@@ -160,7 +160,7 @@ just for them: key and name over a bar. It's green when ready, a yellow
 bar draining while it's on, and a grey-blue bar filling during the
 cooldown.
 
-![The shop's ABILITIES page, nitro on, and the ability row in each state](https://raw.githubusercontent.com/BlueFalconDevelopment/assembly-simulation/main/docs/abilities.png)
+![The shop's ABILITIES page, nitro on, and the ability row in each state](/images/bare-metal-deathmatch/abilities.png)
 
 The code review found that the smoke **didn't hide you from everyone**.
 The Bikers' guns and the dog each scan for targets with their own loop,
@@ -187,7 +187,7 @@ and the van three.** Each job gets a slot (A, B, C) with its own pickup,
 clock and pay. The board stays up while there's room, and each target's
 marker is labeled with its letter.
 
-![The van carrying two jobs, and a garage's door](https://raw.githubusercontent.com/BlueFalconDevelopment/assembly-simulation/main/docs/economy.png)
+![The van carrying two jobs, and a garage's door](/images/bare-metal-deathmatch/economy.png)
 
 Then the play test: *"we need a way to get into the store without dying.
 I left the store without buying powerups and needed to die to get
@@ -246,7 +246,7 @@ mostly 0 or 5. Danger is a real lever. The final numbers:
 - **A streak:** +10% for each delivery before it without dying, up to
   +50%. It shows as "STREAK 3 +30%" in the scoreboard's corner.
 
-![A tipped delivery and a three-delivery streak on the scoreboard](https://raw.githubusercontent.com/BlueFalconDevelopment/assembly-simulation/main/docs/pay.png)
+![A tipped delivery and a three-delivery streak on the scoreboard](/images/bare-metal-deathmatch/pay.png)
 
 Then the play tests, where I learned more about the game than about the
 pay. Reading the test save's totals afterwards told the real story:
