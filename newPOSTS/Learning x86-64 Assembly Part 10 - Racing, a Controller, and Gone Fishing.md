@@ -1,0 +1,225 @@
+# Bare Metal Deathmatch X: Trouble, Racing, and Gone Fishing
+
+2026-10-20 · @Someone
+
+<YouTubeEmbed id="37aDkix0ros" title="Get It - Run The Jewels" />
+
+## Previously
+
+[Part 9](/blog/bare-metal-deathmatch-9) ended with the whole city on the map: Lawton, with named businesses, convenience stores, a minimap, and people and traffic around you. The town was busy, but nothing in it was after you except the gangs.
+
+This post covers six steps, 10.29 to 10.34:
+
+- **10.29:** the cartel's hit squad
+- **10.30:** the good ole boys in a pickup truck
+- **10.31:** street events that pay if you step in
+- **10.32:** racing at the Lawton Raceway, finished and locked to the cockpit
+- **10.33:** an Xbox-style controller for the whole game
+- **10.34:** fishing, at any water in town, with record fish that win three legendary items
+
+The last three are first person, in a **Mode 7** view written in assembly: the same map the city is drawn from, seen from just above the ground.
+
+Repo: private now — this project is on its way to becoming a game on Steam.
+(`stage10/29_cartel` to `stage10/34_fishing`)
+
+## 10.29: The cartel
+
+I wanted trouble in town that wasn't the two gangs. Claude asked how a few things should work, and my answers set the shape of it. The cartel comes first, and they shoot you only if you're in the way.
+
+**A hit**, about every 80 seconds:
+
+1. **The SUV** picks a gang and one of its members, and drives in from a crossing out of your view, along the real roads. The scoreboard says CARTEL IN TOWN, and the minimap shows a black dot ringed white.
+2. **The hunt:** four hitmen get out, in white shirts and black hats, two with pistols and two with shotguns. For 45 seconds they go after the nearest member of that gang, anywhere in the city.
+3. **Back:** they walk to the SUV, fighting only what comes close, and get in. It waits 25 seconds at most, then drives off the way it came.
+
+The hitmen are a new faction, and who fights whom is still one table, the hostility table. For the length of a hit, the cartel's row gets the hunted gang added, and when the hit's over it's taken out again. The other gang, the police and the Bikers leave the hitmen alone, and they leave them alone. You and the hitmen fight, but they only turn on you within 150 px (the gangs do at 300).
+
+The SUV didn't need new driving code. The Bikers already drive the road network to a goal, so their route became a function with its own goal and its own state, and the SUV swaps its state in and out around it. That's the same trick the town's traffic used in Part 9, borrowing the police car's driving.
+
+![The cartel's black SUV at a crossing, the hitmen out on the street, CARTEL IN TOWN on the scoreboard](/images/bare-metal-deathmatch/cartel.png)
+
+My first play test: *"I didn't see the cartel."* The hit was on a gangster anywhere in the city, the SUV took 20 seconds to drive in, and the alert was up for 3 seconds. So now, in a shift, the hit's on a gangster within 1,000 px of you, the SUV comes from 1,000 to 2,000 px away, and the alert stays up until they've gone. Second try: *"I saw it this time, it felt good."*
+
+## 10.30: The good ole boys
+
+My picks: they cruise and shoot, they go after everyone, they're just a tough crew (no boss, no bounty), and their beer cans are just litter.
+
+Once a shift, a red pickup comes in and cruises the roads round you for a minute. Three good ole boys in camo and blaze-orange caps stand in the bed and shoot the nearest gangster, or you. The pickup stops for nobody, and anyone under it takes damage. Every so often a beer can goes over the side and stays on the ground beside the road.
+
+![The good ole boys' red pickup with the crew in the bed](/images/bare-metal-deathmatch/good_ole_boys.png)
+
+The first version shot like the Bikers, 20 damage every half second each, and standing near it felt like losing 60 health a second. A breakpoint on their shots at you counted the real numbers, and they came down to 10 damage every three quarters of a second each.
+
+The code review found one that only a long test would: once the pickup set off to leave, the crossing it was driving to pointed back at itself. Followed, it circled there shooting, forever. Now it's gone once it's out of view, and after 40 seconds regardless.
+
+## 10.31: Street events
+
+Four kinds, each handled its own way, found by the minimap and the scoreboard, and each paying about a delivery:
+
+- **A robbery** at a Circle-Stripes: three robbers in grey hoodies and black masks at the door. Kill them all: $70.
+- **A carjacking:** a stolen car flees you on the roads, taking the way farthest from you. Ram it three times with your ride, and the carjacker bails: $80.
+- **A drug deal** on a corner: two dealers and a bag. Ride over the bag and get 400 px clear: $60.
+- **A street fight:** three locals brawling. Stand in it for 3 seconds to break it up: $40.
+
+My play test: *"felt good but can we have the minimap icon for the player stand out a little more?"* You were a 3 px white square, as white as the hitmen and lost on the minimap's light roads. Now you're a 5 px square in your courier yellow, outlined in black, and the events' marks went magenta so the two don't mix.
+
+## Picking up where I left off
+
+After the trouble I was away from the project for a couple of weeks, so the first thing I asked Claude was where we were. It read its memory notes and the plan's status section, and the answer was precise: the race was code-complete but uncommitted, and my last play test had been cut short before I'd said how three changes felt. Those were the sprint car, the tyre stacks and the faster rivals.
+
+That's what the status section and the notes are for. I clear the context between sessions to save tokens, so everything that matters has to be written down somewhere the next session will read.
+
+## 10.32: Racing, finished
+
+A quick recap of how the race got here, since it was built over a few sessions:
+
+- **The first version was top-down,** in the city, and my verdict was "Does not feel good." The cars should slide in the dirt like real sprint cars, and a top-down view made it hard to feel.
+- **So it went first person,** in a Mode 7 view: each screen row below the horizon is a line across the map at one distance, read straight out of the city's own background picture. The Lawton Raceway you race on is the same dirt you ride past in the city.
+- **The handling was rebuilt** for dirt, with slides, drifts and a boost if you hold a drift long enough. The race added three rivals, a countdown, a $50 entry and prize money.
+- **"A little too easy,"** and I wanted to race in a sprint car whatever I rode in on. So the race got a sprint car with its own cockpit, faster rivals (91, 94 and 97% of your top speed), and stacks of tyres round the inside of the turns.
+
+The play test settled it: *"inside the cockpit view it feels good so let's just eliminate the other view options. Lock it to first person."* The third-person chase camera came out, along with everything only it used. That included most of a 7.9 MB file of car pictures: every vehicle drawn from 64 angles with its wheels three ways. The rivals only ever needed the sprint car, wheels straight or turned left, so the file is 0.86 MB now.
+
+![The race from the cockpit at night: the dirt oval, the lit infield, the light towers](/images/bare-metal-deathmatch/racing.png)
+
+## 10.33: A controller for everything
+
+The race already read an Xbox controller. I wanted the whole game on it. Claude asked three questions first: how to aim without a mouse, whether the stick should move in 8 directions like the keys or any direction, and whether a proposed button layout worked. I took all three recommendations: twin-stick aiming, any direction, and the layout as drawn.
+
+The interesting part is how little of the game had to change. Every key check in the game reads `key_state`, a pointer SDL gives you to its array of keys. Now it points at a copy instead. Each tick, the game copies SDL's 512 keys into its own buffer and **presses the pad's buttons in as keys**, choosing which key by where you are:
+
+- In the city, A is E (get on or off), X is ENTER, Y is Q, START is ESC.
+- In a menu, the D-pad is W A S D and B is ESC.
+- On the pause pages, START is ESC again, to get back to the game.
+
+Every menu, the shop, the pause screen and the job board took the controller without a line changed, edge detection included.
+
+The sticks and triggers aren't keys. The left stick drives the walking and the vehicle code directly. The right stick aims a crosshair, and if a gangster is roughly in line with it (within about 20 degrees), the crosshair snaps onto him. RT fires and LT locks on, through the same variables the mouse's buttons use.
+
+![The pad's yellow crosshair snapped onto a gangster in the street](/images/bare-metal-deathmatch/pad_crosshair.png)
+
+**Testing without touching the controller.** Claude tests player features with gdb scripts that play the game. But my real controller was plugged in, and the game had opened it first. SDL 2 can attach a *virtual* controller, so the script made one, closed the game's real one, and handed it the virtual one. Then it pressed buttons and pushed sticks from Python: START on the title, walk 30 ticks, aim right, pull the trigger.
+
+That caught a real bug. Walking "mostly down, a little left" went 15 px left when it should have gone 34. The stick's dead zone was cut out of each axis separately, which bends shallow angles toward the axes. A round dead zone fixed it.
+
+My play test: aiming and the layout *"feel good"*, but zooming out a step at a time through eight zoom levels to get back to a close view *"takes too long."* So R3 cycles four zooms now, and after another try the two wide ones went *"a little farther out."*
+
+## 10.34: Fishing
+
+This was my design:
+
+> *you dismount your vehicle and walk towards any body of water (lake, pond, stream, river etc) press a button and you go into the minigame. You will then be in first person view and you will aim with the mouse/keyboard or controller stick then cast out with a button and a gauge to indicate how far you're casting out. you will watch the bobber in the water until it gets a bite then try to sink the hook and reel it in.*
+
+Claude asked a round of questions before starting, and some of my answers surprised me as I made them:
+
+- **The clock stops while you fish,** with no limit.
+- **Most fish are worth nothing,** except that they heal you if you're hurt. One catch in ten pays a little money.
+- **Record fish** are incredibly rare (1 bite in 2,000), and each one wins a legendary item that didn't exist yet. Claude pitched four ideas and I picked three.
+- **Reeling uses a tension meter** *and* steering against the fish's runs.
+
+## Finding the water
+
+The map generator paints lakes, ponds, rivers, streams and canals into the background in exactly two colours. A dump of the drawn map counted 1.16 million water pixels, from a big lake in the north-east to creeks all over town. So "near water" is a pixel check: any water within 20 px of you, on foot, puts "ENTER: FISH" on the scoreboard.
+
+One surprise from the test scripts: the big lake is inside the fenced army post, where you can't go. Claude found that when every step its script tried from the lake's shore was blocked, then asked the game which of 1,500 shoreline spots in town a person can stand on. 1,475 of them were fine.
+
+## The first view, and why it felt bad
+
+![The first fishing view: a blurry bank and flat blue water](/images/bare-metal-deathmatch/fishing_first.png)
+
+My verdict on Part 1: *"the view feels pretty bad. the water seems fuzzy around the edges and nothing looks like it has any depth."* Also the cast went *"too fast and too far especially when fishing on a creek,"* I needed to *"walk down the creek to fish specific spots,"* and the bobber needed to be *"smaller and more detail."*
+
+The fuzz had a clear cause. The map is 0.55 pixels a metre, so standing on the bank, one map pixel near you covers a big patch of the screen. The race smooths that over by blending neighbouring pixels, but blending the water's edge with the grass makes a blurry shoreline.
+
+## The rework
+
+**The ground round you is built at 4 texels a map pixel,** 600 map pixels square, in about 140 ms:
+
+- **The shoreline** comes from the water mask blended between map pixels, then cut at the halfway mark. That gives a smooth, sharp curve instead of a staircase or a blur.
+- **The depth** comes from a box blur of the water mask, done with running sums: shallow, murky green-brown at the bank, deep blue in the middle. Wet mud runs along the edge.
+- **The land** keeps the map's colours, with grain.
+- **The water moves** while you look at it: two swells crossing, paler toward the horizon where the sky would reflect, and now and then a glint. How much of each texel is water is stored in the pixel's alpha byte, which the race never used, so the floor drawing knows which pixels to animate.
+
+**Depth came from the trees.** The map generator places about 8,700 trees and bushes, but it painted them straight into the background picture and forgot where they were. A new map version writes their positions out. Its background came out byte for byte identical to the old one. Now the map's own trees stand up as shaded pixel-art billboards, with reeds and cattails along the shore and tufts of grass round your feet.
+
+**You can walk and look round,** shooter-style: the mouse is captured, W A S D walk, and you can't walk into the water. Looking up and down moves the horizon row. My next note was *"you can't look down at the ground,"* so the horizon can go above the top of the screen now.
+
+The mouse sensitivity took four rounds, from 5 units a pixel down to 1.5. A fraction of a unit can't turn you, so the leftover is carried from one tick to the next.
+
+![A pond in town, the trees on the far bank, reeds, and the bobber in its ripples](/images/bare-metal-deathmatch/fishing_pond.png)
+
+![A creek between its reeds and cattails](/images/bare-metal-deathmatch/fishing_creek.png)
+
+The view is lit by the game's own time of day: blue by day, warm at dusk, stars and street lamps at night.
+
+![The same pond at night](/images/bare-metal-deathmatch/fishing_night.png)
+
+## The bite and the fight
+
+A fish comes in 3 to 12 seconds. The bobber dips 1 to 4 times; press now and it's too soon, and the fish swims off. Then the bobber goes under, and you have half a second to set the hook.
+
+The fight is a tension meter:
+
+- **Hold to reel.** The line tightens, more for a bigger fish.
+- **Let off** and it eases, but too slack for too long and the fish throws the hook.
+- **Too tight** and it snaps.
+- **The fish runs** left and right, and steering against the run eases the strain.
+
+![A fish running left: the line swung over, the tension meter on the right](/images/bare-metal-deathmatch/fishing_fight.png)
+
+Tuning it with a test script that reels carefully turned up two problems in a row:
+
+- **First, too easy:** a 41 lb alligator gar came in in about 3 seconds.
+- **Then, after slowing the reel for big fish, impossible:** anything over 8 lb never came in. The fish's pull and your reel balanced out forever.
+
+The fix was **stamina**: keep the line tight and the fish tires. Now a bluegill takes about 1.5 seconds, a 20 lb catfish about 22, and a 70 lb gar about 80.
+
+There are ten Oklahoma species, each drawn side on with its own markings: the bluegill's bars, the bass's stripe, the catfish's whiskers, the gar's teeth. Bigger water holds bigger fish.
+
+![The ten fish: bluegill, green sunfish, white crappie, largemouth bass, white bass, channel and flathead catfish, common carp, freshwater drum, alligator gar](/images/bare-metal-deathmatch/fish_kinds.png)
+
+![The catch card: a 5.2 lb largemouth bass, eaten for 30 health, a new biggest](/images/bare-metal-deathmatch/fishing_catch.png)
+
+My play test found one bug: *"the fish can fight past the blue of the water in to the ground on the other side."* The fight stopped the line *swinging* onto land, but nothing stopped a fish taking line straight out across the far bank. It can't now, and a script let a hooked 40 lb fish swim and run freely in a creek for 25 seconds to prove it.
+
+## Record fish and the legendaries
+
+One bite in 2,000 is a state record: a flathead catfish, a largemouth bass or an alligator gar, each about the size of Oklahoma's real record. Each wins its own legendary item:
+
+- **Catfish Noodler's Gloves** (the flathead; noodling is catching catfish by hand): in the bat's slot, a hit does 250 damage and knocks the gangster back, and you get a quarter more health.
+- **Grandpa's Golden Shotgun** (the bass): it replaces your shotgun, with nearly the rifle's range, double the damage, and gold pellets.
+- **The Lawton Lowrider** (the gar): a sixth ride, the fastest in town, gold, bouncing on its hydraulics when it's stopped. It only appears in the shop once you own it.
+
+![STATE RECORD! A largemouth bass wins Grandpa's Golden Shotgun](/images/bare-metal-deathmatch/fishing_record.png)
+
+![The Lawton Lowrider in the street](/images/bare-metal-deathmatch/lowrider.png)
+
+![The golden shotgun's gold pellets](/images/bare-metal-deathmatch/golden_shotgun.png)
+
+At 1 in 2,000, I'd never see one in a play test, so Claude made me a test save that already owned all three. My verdict: *"everything seemed fine."*
+
+## The code review
+
+Before committing, I ran a code review on the step. It found ten real problems. A few of them:
+
+- **A legendary won mid-shift was set but not loaded,** so the golden shotgun had no shells until your next life.
+- **The rifle fired gold pellets too,** because the gold check looked at what the shot *looked* like, and the rifle borrows the shotgun's look.
+- **"ENTER: FISH" covered the warnings for the cartel and the Bikers,** and with creeks all over town, that could have hidden them often.
+- **Standing right at the water's edge counted as "blocked",** and the way out of a blocked spot only checked for water. So you could walk through walls.
+
+All ten were fixed in the same step, and the tests were run again.
+
+## What I learned this time
+
+- **A table you can change on the fly is worth having.** The cartel hunting one gang, then not, is two writes to the hostility table.
+- **If players can't see a feature, it doesn't exist.** The cartel worked the first time; I just never saw it.
+- **Write the state down.** After two weeks away, the notes and the status section put me back exactly where I'd stopped, down to which play-test answers were still missing.
+- **The cheapest way to support a new input is often to translate it.** Pressing the controller's buttons into the key array meant no menu code changed.
+- **A virtual device makes input testable.** The test scripts drove a fake controller while the real one sat on my desk.
+- **"Feels bad" usually has a measurable cause.** The fuzzy shoreline was the map's scale meeting the race's smoothing, and the flatness was the lack of anything standing up.
+- **Tune the extremes.** Every fish from 0.5 to 70 lb was tried before I played, which turned up both "too easy" and "impossible", and stamina fixed both.
+
+## What's next
+
+- **Golf,** the last of the planned minigames. It can reuse fishing's view, walking and daylight.
+- **More of the town:** the businesses and the landmarks where the real ones are.

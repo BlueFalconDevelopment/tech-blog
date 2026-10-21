@@ -1,0 +1,202 @@
+---
+title: "Bare Metal Deathmatch XII: A Casino, Real Landmarks, and Roads That Make Sense"
+description: "A first-person casino with slots, blackjack, roulette and Texas Hold'em against four regulars; auto-aim; the landmarks rebuilt from their real outlines; and the roads cleaned up, painted and signed, with traffic that stops at the lights."
+pubDate: 2026-10-20
+tags: ["assembly", "low-level", "gamedev"]
+---
+
+import YouTubeEmbed from "../../components/YouTubeEmbed.astro";
+
+<YouTubeEmbed id="oGR_UFq7y04" title="HALLOWGR33N (full tape) - Keifer Gr33n" start={553} />
+
+```text
+--[ PREVIOUSLY ]----------------------------------------------------------
+```
+
+[Part 11](/blog/bare-metal-deathmatch-11) added golf, the businesses where the real ones are, and seventeen landmarks, each a box with a sign on its roof. Dying started waking you at the Lawton Indian Hospital.
+
+This post covers four steps, 10.38 to 10.41:
+
+- **10.38:** the Indian Casino: slots, blackjack, roulette and Texas Hold'em
+- **10.39:** auto-aim, after a play tester couldn't aim
+- **10.40:** the landmarks as the real buildings look
+- **10.41:** the roads: the layout cleaned up, real markings and signs, and traffic that obeys the lights
+
+Repo: private now — this project is on its way to becoming a game on Steam.
+(`stage10/38_casino` to `stage10/41_roads`)
+
+```text
+--[ 10.38: THE INDIAN CASINO ]--------------------------------------------
+```
+
+My design: all four games, a first-person casino floor and a flat view once you sit down at a game, bets from $5 to $100, and a cash jackpot that every game's bets feed. It was built in four parts, each play-tested.
+
+**The floor** is drawn the way early first-person games were. Each row of carpet and ceiling is one distance, stepped across in 16.16 fixed point. Each column of wall is one ray to the room's box. The 43 slot machines and three tables are billboards drawn far to near, cut by the walls, and everything darkens with distance. You walk it with W A S D or the left stick, and you slide along the machines instead of walking through them.
+
+![The casino floor: carpet, the ceiling lights, the three tables](/images/bare-metal-deathmatch/casino_floor.png)
+
+**The jackpot** starts at $5,000, and every bet anywhere adds a tenth of itself. It's saved. Each game has its own way to win it:
+
+- **Slots:** three jackpot coins.
+- **Blackjack:** your first three cards are 7s of one suit.
+- **Roulette:** a straight-up bet wins on the same number three spins running.
+- **Hold'em:** a royal flush that uses one of your two cards.
+
+```text
+--[ SLOTS AND BLACKJACK ]-------------------------------------------------
+```
+
+**The slots** have three reels of 27 stops each, a pay table that gives back 92.3%, and a win about 2 spins in 5. Three coins come up 1 spin in 19,683.
+
+![The slots paying the jackpot: three coins, $5,011](/images/bare-metal-deathmatch/casino_slots.png)
+
+**Blackjack** is played with six decks, and the dealer stands on all 17s. You get every move: double, split up to four hands, insurance and surrender. Blackjack pays 3 to 2. Two computer players, Ray and June, sit with you and play by the book.
+
+![Blackjack: a blackjack for you, wins for Ray and June](/images/bare-metal-deathmatch/blackjack.png)
+
+The first real play test crashed on the first deal. The test bot forced its cards through a variable declared as a dword but read as a qword, and since the bot always wrote all eight bytes, it never saw the problem. A real shuffled first hand read garbage. It's a `dq` now, and the bots deal an unforced hand on a copy of my save as well.
+
+```text
+--[ ROULETTE ]------------------------------------------------------------
+```
+
+It's the American wheel, with 0 and 00. You move a cursor over the layout to put chips down: straight up, columns, dozens and the even-money bets.
+
+The wheel is drawn from a table. Each pixel's ring and angle are worked out once, with the x87 `fpatan` instruction, so each frame is one lookup per pixel plus the wheel's turn.
+
+The spin's result is picked the moment you press the button. The ball's angle is then aimed backwards from that pocket, so it spirals down and comes to rest exactly there at tick 240, falling off the track with a little bounce on the way.
+
+![Roulette: the wheel and the layout](/images/bare-metal-deathmatch/roulette.png)
+
+My play test: *"felt good."* It cost me $3,990.
+
+```text
+--[ TEXAS HOLD'EM ]-------------------------------------------------------
+```
+
+A $200 buy-in, $5/$10 no-limit, against four regulars with faces, styles, table talk and tells:
+
+- **Earl the rock** plays his top 11% of hands, and stacks his chips when he's bluffing.
+- **Dixie the maniac** plays more than half, raises big, and asks *"YOU SCARED, HON?"*
+- **Wendell the calling station** calls everything down, and scratches his ear.
+- **Rosa** is solid, and thinks a long time before a bluff.
+
+They decide with **Monte Carlo equity**. For each decision, the rest of the cards are dealt out 300 times to see how often their hand wins. Each player's style is a handful of thresholds on that number. The evaluator was checked against a Python one on 3,908 hands, and 172 showdowns with side pots against a Python side-pot model, with no differences.
+
+![Hold'em: a showdown, two pair wins](/images/bare-metal-deathmatch/holdem.png)
+
+The first stats run had the AI far too loose: Rosa played half her hands and Wendell went broke constantly. They were retuned from real preflop percentiles, and calling now needs more when it's a big part of your stack. My play test: *"it felt good,"* and I left $591 up.
+
+```text
+--[ 10.39: AUTO-AIM ]-----------------------------------------------------
+```
+
+I had someone play test for a while, and they couldn't aim well. Before, a shot went to the enemy nearest your cursor within 40 px, or it missed.
+
+I picked the gentle version, an assist. If your cursor's on nobody you can hit, the shot goes to the nearest enemy your gun can reach and see. Pointing at someone or locking on still picks your target, so a good aim still counts. It's on by default, with a switch on the pause menu's OPTIONS page, which had been a placeholder since 10.17.
+
+![The OPTIONS page: AUTO-AIM ON and OFF](/images/bare-metal-deathmatch/autoaim_options.png)
+
+The test put you at 300 spots around the city and checked the target against a Python model of range and line of sight. All 300 agreed.
+
+```text
+--[ 10.40: THE LANDMARKS AS THE REAL ONES LOOK ]--------------------------
+```
+
+My pick: real shapes, their grounds and their roofs, all 17 at once.
+
+- **The shapes** come from OpenStreetMap's building outlines, fetched by a new tool. Where the data had none, they were traced by hand off aerial photos: Police HQ and the fire station, the park's pavilion, the aquatics center's pools, the Indian hospital's outbuildings, the stadium's stands and most of the lots.
+- **The roofs** are painted like the real ones: City Hall's red tiled hips and copper dome, the courthouse's white roof in a brick plaza, the library's sage metal, the mall's acres of white with skylights, the museum's slanted bands, the auditorium's ribbed fan, the casino's gold trim.
+- **The grounds:** lawns, walks, parking lots, a football field with its stands and light towers, pools with lanes, a helipad.
+
+![The civic block now: City Hall's red roof, the courthouse in its plaza, the jail, the mall](/images/bare-metal-deathmatch/landmarks_downtown.png)
+
+Scale was the hard part. The map is 0.55 px a metre, but you and the cars are drawn at about nine. At the map's scale a downtown landmark would be smaller than a burger joint, so small landmarks are drawn up to 1.6 times their size. The stadium is 1.8 times, the pavilion 3, and the big sites stay as they are. The game's roads are wider than the real ones too, so a landmark sitting on a road slides the least way to free ground.
+
+![The stadium: the field you can walk on, its stands and light towers](/images/bare-metal-deathmatch/landmarks_stadium.png)
+
+The real gaps between campus and hospital buildings come out at 5 to 16 px on this map. The generator plugs any gap of 16 to 47 px with a hedge, because soldiers get stuck or jam in them. My first try filled the whole campus core with hedges and sealed the university's door in. Now those gaps are planted courtyards with a hedge round them, and a landmark's door goes on the outside of its block.
+
+![The museums by the lake](/images/bare-metal-deathmatch/landmarks_park.png)
+
+My play test: *"it looked okay to me,"* except that *"the letters for St CoPAY are the same color as the building."* Every landmark's name has a dark drop shadow now.
+
+```text
+--[ 10.41: THE ROADS ]----------------------------------------------------
+```
+
+My ask: *"clean up the road layout. There are some illogical roads and parts where the roads merge together that don't exist in real life."* And, *"Is there any way to put realistic marks and signs on the road?"*
+
+Claude started by drawing the game's roads with OpenStreetMap's real centrelines on top, and found three causes:
+
+- **Divided roads were blobs.** The data draws Quanah Parker, Gore, Cache and I-44 as two one-way roads 10 to 60 m apart. At the game's widths, the two overlapped into one fat, bulging road.
+- **Interchanges were one dark mass** of highway and ramps.
+- **Streets stopped mid-block.** Thinning keeps about one residential street in three, and a kept street that ended where a dropped one carried on just stopped.
+
+![Before: Quanah Parker's two halves overlapping, the real centrelines in red and yellow](/images/bare-metal-deathmatch/roads_before_divided.png)
+
+My picks: a divided road as one road with a real median, whole streets only, every kind of marking and sign, and lights and stop signs the town's cars actually obey. It was built in three parts.
+
+```text
+--[ PART 1: THE LAYOUT ]--------------------------------------------------
+```
+
+- **Divided roads** are paired: the same class and name, running opposite ways, close together. One half moves to the middle and becomes one road with both directions' lanes and a median, concrete in town and grass on the highway. Getting the pairing right took a few tries. Deciding which half to keep by its heading made a road running north-east vanish, because both halves looked backward, so now it's decided by pair.
+- **Widths come from the real lane counts,** 24 px a lane (the game's car is 20 wide), capped by class. Downtown's four-lane avenues, a block apart, had become one slab of asphalt.
+- **Crowded roads go.** A road running beside a bigger one, too close to leave a block between them, is dropped. It's measured sideways, so the next piece of the same road doesn't count. The first version measured straight-line distance and deleted downtown's whole SW 6th Street, piece by piece.
+- **Whole streets:** a kept street's loose end follows the real streets to the nearest kept road, up to 600 m away. Just cutting stubs back had collapsed whole neighbourhoods, one stub at a time.
+- **No ramp blobs.** Once a divided road's two halves are one, a ramp's ends don't meet anything, so the ramps go. Only links that carry a road on stay, like where the highway becomes Quanah Parker Trailway.
+
+![After: the residential streets joined up again](/images/bare-metal-deathmatch/roads_after_streets.png)
+
+```text
+--[ PART 2: MARKINGS AND SIGNS ]------------------------------------------
+```
+
+Every junction is found from the cleaned-up roads, 718 of them. Traffic lights go where the real data has them, and stop signs where it has those. Otherwise a smaller road stops for a bigger one, and two main roads of the same kind get an all-way stop.
+
+- **Paint:**
+  - Down the roads: double yellow on main roads, a centre turn lane's solid-and-dashed yellow, white dashes between lanes, and yellow along the medians.
+  - At junctions: stop bars, crosswalks at the lights, and turn arrows.
+  - At railroad crossings: the rails across the road, with an X and a stop bar.
+- **Signs:** stop signs, speed limits, crossbucks, and the lights' poles and arms.
+- **In the game,** each signal head's lamp cycles red, yellow and green, with each junction on its own timing. Near a green street sign, its names show over it: "NW 38TH ST & NW ROGERS LN".
+
+![Rogers Lane and 38th: the lights, the crosswalks, the arrows, the street names](/images/bare-metal-deathmatch/roads_signal.png)
+
+The paint is drawn on a layer of its own and copied onto the map only where there's road surface. On curves, the crosswalks had been swinging out onto the grass.
+
+My play test: *"the highway is all jumbled up in front of the indian hospital."* Just south of it, I-44's two halves spread more than 60 m apart around an interchange, so they stopped being one road. Each half got painted with a double yellow like a two-way street, and the split was taken for a junction, with stop signs on the interstate. Now the highway's halves pair up to 220 m apart, a junction with the highway is treated as an overpass with no paint, and one-way roads get one-way paint.
+
+![I-44 past the Indian hospital, straightened out](/images/bare-metal-deathmatch/roads_interstate.png)
+
+![Downtown by the library: lane lines, signal arms, crosswalks](/images/bare-metal-deathmatch/roads_downtown.png)
+
+```text
+--[ PART 3: TRAFFIC THAT OBEYS THE LIGHTS ]-------------------------------
+```
+
+The town's cars drive straight stretches of road and turn where those cross. Each of those 166 crossings now knows its junction's control: lights (26), stop signs and which ways stop (104), or none (36).
+
+Before each step, a car checks the crossing just ahead. If its front is at the stop line and the light its way is red or yellow, it waits. At a stop sign its way, it stands for 50 ticks, once. The lamps you see are the same ones the cars obey. Waiting at a light never makes a car give up and turn round, and a car queued behind another waits up to 900 ticks first.
+
+The first test run showed no car ever stopping. The distance to the stop line was being computed in `rax`, and the macro that looks up the crossing road's width uses `rax` too. Read the width first, and the test showed 20,153 car moves over 4,000 ticks, no red lights run, and 31 stop signs obeyed.
+
+```text
+--[ WHAT I LEARNED THIS TIME ]--------------------------------------------
+```
+
+- **A game is a set of games.** The casino is four separate rule sets, AIs and screens behind one door.
+- **Let the bots test what players do.** Forced test cards hid a crash that the first real shuffle found.
+- **Accessibility is a design choice, not a cheat.** Auto-aim as an assist kept aiming worth learning.
+- **Real data at a fake scale needs rules.** Every landmark and road change was about how real geometry meets a map drawn 16 times smaller than its people.
+- **Draw the problem first.** Overlaying the real centrelines on the game's roads showed all three road bugs in one picture.
+- **Check what a macro clobbers.** One borrowed register made the traffic ignore every light.
+
+```text
+--[ WHAT'S NEXT ]---------------------------------------------------------
+```
+
+- **St. Copay's,** a paid heal at the other hospital.
+- **The library's lore.**
+- **A balance pass,** now with the casino, the classes and the bounties in the mix.
